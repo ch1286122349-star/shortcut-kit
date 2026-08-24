@@ -9,6 +9,7 @@ end
 function Runner:start(modules, config, context)
   local report = { modules = {}, ok = true }
   local enabledModules = (config and config.modules) or {}
+  context.config = config
 
   for _, module in ipairs(modules or {}) do
     local enabled = enabledModules[module.id] ~= false

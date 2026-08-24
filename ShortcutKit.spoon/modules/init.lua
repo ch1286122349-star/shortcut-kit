@@ -6,4 +6,9 @@ return {
   require("modules.local_ocr").new(),
   require("modules.chrome_recent_tabs").module(),
   require("modules.chrome_mention").new(),
+  require("modules.codex_toggle").new(),
+  require("modules.mailmaster_toggle").new(),
+  require("modules.chatgpt_classic").new(),
+  require("modules.whatsapp_command_w").new(),
+  require("modules.btt_bridge").new(),
 }

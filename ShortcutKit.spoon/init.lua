@@ -25,6 +25,11 @@ ShortcutKit.defaults = {
     local_ocr = true,
     chrome_recent_tabs = true,
     chrome_mention = true,
+    codex_toggle = true,
+    mailmaster_toggle = true,
+    chatgpt_classic = true,
+    whatsapp_command_w = true,
+    btt_bridge = true,
   },
   hotkeys = {
     window_screenshot = { { "cmd" }, "r" },
@@ -32,6 +37,21 @@ ShortcutKit.defaults = {
     local_ocr = { { "cmd" }, "s" },
     chrome_mention_2 = { { "cmd", "shift" }, "2" },
     chrome_mention_3 = { { "cmd", "shift" }, "3" },
+    codex_toggle = { { "cmd" }, "2" },
+    mailmaster_toggle = { { "cmd" }, "5" },
+    mailmaster_pad5 = { { "cmd" }, "pad5" },
+    chatgpt_toggle = { { "cmd" }, "`" },
+    chatgpt_toggle_section = { { "cmd" }, "§" },
+    chatgpt_model_auto = { { "ctrl", "alt" }, "1" },
+    chatgpt_model_instant = { { "ctrl", "alt" }, "2" },
+    chatgpt_model_thinking = { { "ctrl", "alt" }, "3" },
+    chatgpt_model_pro = { { "ctrl", "alt" }, "4" },
+  },
+  apps = {
+    codex = { "com.openai.codex" },
+    mailmaster = { "com.netease.macmail" },
+    chatgpt = { "com.openai.chat" },
+    whatsapp = { "com.microsoft.edgemac.app.hnpfjngllnobngcgfapefoaidbinmjnm" },
   },
 }
 
