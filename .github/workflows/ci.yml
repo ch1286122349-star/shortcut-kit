@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install test tools
-        run: brew install lua shellcheck
+        run: brew install lua shellcheck ripgrep
       - name: Shell syntax and lint
         run: |
           bash -n install.sh update.sh uninstall.sh restore.sh scripts/*.sh scripts/lib/*.sh tests/shell/*.sh
