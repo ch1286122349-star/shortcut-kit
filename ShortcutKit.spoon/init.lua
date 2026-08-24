@@ -22,10 +22,12 @@ ShortcutKit.defaults = {
     command_space = true,
     right_option = true,
     left_mouse_modifier = true,
+    local_ocr = true,
   },
   hotkeys = {
     window_screenshot = { { "cmd" }, "r" },
     command_space = { { "cmd" }, "space" },
+    local_ocr = { { "cmd" }, "s" },
   },
 }
 

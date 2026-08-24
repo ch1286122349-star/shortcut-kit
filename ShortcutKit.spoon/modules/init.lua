@@ -3,4 +3,5 @@ return {
   require("modules.command_space").new(),
   require("modules.right_option").new(),
   require("modules.left_mouse_modifier").new(),
+  require("modules.local_ocr").new(),
 }
