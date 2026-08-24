@@ -16,5 +16,6 @@ let package = Package(
             resources: [.process("Resources")]
         ),
         .testTarget(name: "ShortcutKitCoreTests", dependencies: ["ShortcutKitCore"]),
+        .testTarget(name: "ShortcutKitAppTests", dependencies: ["ShortcutKitApp", "ShortcutKitCore"]),
     ]
 )

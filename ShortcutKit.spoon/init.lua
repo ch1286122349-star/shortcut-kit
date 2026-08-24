@@ -85,6 +85,18 @@ function ShortcutKit:stop()
   return self
 end
 
+function ShortcutKit:setRecordingMode(active)
+  active = active == true
+  if active and not self.recordingMode then
+    self:stop()
+    self.recordingMode = true
+  elseif not active and self.recordingMode then
+    self.recordingMode = false
+    self:startFromAppConfig(self.appConfigPath)
+  end
+  return true
+end
+
 function ShortcutKit:status()
   return self.report or { modules = {}, ok = false }
 end

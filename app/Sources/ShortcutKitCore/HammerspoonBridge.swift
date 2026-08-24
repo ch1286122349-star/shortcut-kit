@@ -15,6 +15,7 @@ public protocol HammerspoonBridging: Sendable {
         timeout: TimeInterval
     ) async throws -> RuntimeReport
     func checkConflict(spec: HotkeySpec, excludingActionID: String) async throws -> HotkeyConflict?
+    func setRecordingMode(_ active: Bool) async throws
 }
 
 public extension HammerspoonBridging {
@@ -33,6 +34,8 @@ public extension HammerspoonBridging {
     func checkConflict(spec: HotkeySpec, excludingActionID: String) async throws -> HotkeyConflict? {
         nil
     }
+
+    func setRecordingMode(_ active: Bool) async throws {}
 }
 
 public struct HammerspoonBridge: HammerspoonBridging, Sendable {
@@ -95,6 +98,16 @@ public struct HammerspoonBridge: HammerspoonBridging, Sendable {
         case "system": return .system(description: response.description ?? "macOS system shortcut")
         default: throw HammerspoonBridgeError.invalidStatus
         }
+    }
+
+    public func setRecordingMode(_ active: Bool) async throws {
+        let command = "return spoon.ShortcutKit:setRecordingMode(\(active ? "true" : "false"))"
+        let result = try await runner.run(
+            executable: executableURL,
+            arguments: ["-c", command],
+            timeout: 3
+        )
+        guard result.exitCode == 0 else { throw HammerspoonBridgeError.commandFailed }
     }
 
     public func reloadAndWait(

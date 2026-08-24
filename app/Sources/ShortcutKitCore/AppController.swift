@@ -91,6 +91,11 @@ public final class AppController {
         }
     }
 
+    public func setRecordingMode(_ active: Bool) async {
+        do { try await bridge.setRecordingMode(active) }
+        catch { self.error = .configurationUnavailable }
+    }
+
     private func transact(
         expected: [String: Bool],
         mutation: (inout AppConfiguration) -> Void
