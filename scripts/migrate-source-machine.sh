@@ -64,6 +64,12 @@ restore_backup() {
   rm -rf "$failed_dir"
 }
 
+restart_hammerspoon() {
+  /usr/bin/osascript -e 'tell application "Hammerspoon" to quit' >/dev/null 2>&1 || true
+  /bin/sleep 1
+  /usr/bin/open -b org.hammerspoon.Hammerspoon >/dev/null 2>&1 || /usr/bin/open -a Hammerspoon >/dev/null 2>&1
+}
+
 mkdir -p "$source_root/Spoons"
 stage_dir="$(mktemp -d "$source_root/.shortcut-kit-migrate.XXXXXX")"
 trap 'rm -rf "$stage_dir"' EXIT
@@ -76,6 +82,7 @@ mv "$stage_dir/ShortcutKit.spoon" "$source_root/Spoons/ShortcutKit.spoon"
 
 init_stage="$(mktemp "$source_root/.shortcut-kit-init.XXXXXX")"
 {
+  printf '%s\n' 'require("hs.ipc")'
   printf '%s\n' 'hs.loadSpoon("ShortcutKit")'
   printf '%s\n' 'spoon.ShortcutKit:start()'
   printf '%s\n' 'shortcutKitStatus = function() return spoon.ShortcutKit:status() end'
@@ -92,8 +99,8 @@ elif [[ "$offline" == false ]]; then
   if ! command -v hs >/dev/null 2>&1; then
     verified=false
   else
-    hs -c 'hs.reload()' >/dev/null || verified=false
-    /bin/sleep 1
+    hs -c 'hs.reload()' >/dev/null 2>&1 || true
+    /bin/sleep 2
     status="$(hs -c 'local s=shortcutKitStatus and shortcutKitStatus(); return s and tostring(s.ok) or "missing"' 2>/dev/null || true)"
     [[ "$status" == *"true"* ]] || verified=false
   fi
@@ -101,6 +108,7 @@ fi
 
 if [[ "$verified" != true ]]; then
   restore_backup
+  if [[ "$offline" == false ]]; then restart_hammerspoon || true; fi
   echo "Migration verification failed; the original configuration was restored." >&2
   exit 1
 fi

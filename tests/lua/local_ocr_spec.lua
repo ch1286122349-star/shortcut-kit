@@ -8,6 +8,12 @@ local removed = {}
 local existing = { ["/fake/local-ocr"] = true }
 local hotkeyRelease
 
+helper.assertEqual(
+  OCR.defaultBinaryPath("/tmp/ShortcutKit.spoon/modules/local_ocr.lua"),
+  "/tmp/ShortcutKit.spoon/bin/local-ocr",
+  "OCR binary path resolves from the module file"
+)
+
 local fakeHS = {
   fs = { attributes = function(path) return existing[path] and {} or nil end },
   host = { uuid = function() return "test-uuid" end },

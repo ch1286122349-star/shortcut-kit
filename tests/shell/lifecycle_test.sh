@@ -52,4 +52,13 @@ if [[ -e "$conflict/Spoons" ]]; then
   exit 1
 fi
 
+migrated="$test_area/migrated"
+mkdir -p "$migrated"
+cp -R "$project_root/tests/fixtures/hammerspoon/migrated/." "$migrated/"
+"$project_root/install.sh" --root "$migrated" --apply --skip-hammerspoon
+if [[ "$(/usr/bin/awk '/hs\.loadSpoon\("ShortcutKit"\)/{count++} END{print count+0}' "$migrated/init.lua")" -ne 1 ]]; then
+  echo "update from the migration loader duplicated ShortcutKit" >&2
+  exit 1
+fi
+
 echo "lifecycle_test: PASS"

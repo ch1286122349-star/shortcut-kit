@@ -26,6 +26,9 @@ if [[ -f "$init_path" ]]; then
   /usr/bin/awk '
     /^[[:space:]]*-- shortcut-kit:begin[[:space:]]*$/ { skipping=1; next }
     /^[[:space:]]*-- shortcut-kit:end[[:space:]]*$/ { skipping=0; next }
+    !skipping && $0 == "hs.loadSpoon(\"ShortcutKit\")" { next }
+    !skipping && $0 == "spoon.ShortcutKit:start()" { next }
+    !skipping && $0 == "shortcutKitStatus = function() return spoon.ShortcutKit:status() end" { next }
     !skipping { print }
   ' "$init_path" > "$temp_path"
 fi
@@ -33,6 +36,9 @@ fi
 if [[ "$action" == "add" ]]; then
   {
     printf '\n-- shortcut-kit:begin\n'
+    if ! /usr/bin/grep -Eq '^[[:space:]]*require\("hs\.ipc"\)[[:space:]]*$' "$temp_path"; then
+      printf 'require("hs.ipc")\n'
+    fi
     printf 'hs.loadSpoon("ShortcutKit")\n'
     printf 'spoon.ShortcutKit:start()\n'
     printf 'shortcutKitStatus = function() return spoon.ShortcutKit:status() end\n'

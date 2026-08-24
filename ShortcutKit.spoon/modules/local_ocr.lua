@@ -1,6 +1,12 @@
 local Module = { id = "local_ocr" }
 Module.__index = Module
 
+function Module.defaultBinaryPath(moduleSource)
+  local source = (moduleSource or ""):gsub("^@", "")
+  local spoonRoot = source:match("^(.*)/modules/[^/]+$")
+  return spoonRoot and (spoonRoot .. "/bin/local-ocr") or nil
+end
+
 local function trim(value)
   return (value or ""):match("^%s*(.-)%s*$") or ""
 end
@@ -16,9 +22,10 @@ end
 
 function Module:detect(context)
   local hs = context.hs
-  local path = self.binaryPath or (hs.spoons and hs.spoons.resourcePath("bin/local-ocr"))
+  local source = debug.getinfo(1, "S").source
+  local path = self.binaryPath or Module.defaultBinaryPath(source)
   self.binaryPath = path
-  return hs.fs.attributes(path) ~= nil, "OCR binary is unavailable"
+  return path ~= nil and hs.fs.attributes(path) ~= nil, "OCR binary is unavailable"
 end
 
 function Module:finish(imagePath)
