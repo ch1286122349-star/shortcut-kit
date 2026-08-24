@@ -5,6 +5,7 @@ local Config = require("config")
 local Runner = require("lib.module_runner")
 local Logger = require("lib.logger")
 local Registry = require("lib.hotkey_registry")
+local AppConfig = require("lib.app_config")
 
 local ShortcutKit = {
   name = "ShortcutKit",
@@ -68,6 +69,13 @@ function ShortcutKit:start(userConfig)
   return self
 end
 
+function ShortcutKit:startFromAppConfig(path)
+  self.appConfigPath = path or AppConfig.defaultPath()
+  local config, configError = AppConfig.read(self.appConfigPath, hs)
+  self.appConfigError = configError
+  return self:start(config or {})
+end
+
 function ShortcutKit:stop()
   for _, module in ipairs(self.modules) do
     if module.stop then pcall(function() module:stop() end) end
@@ -77,6 +85,23 @@ end
 
 function ShortcutKit:status()
   return self.report or { modules = {}, ok = false }
+end
+
+function ShortcutKit:appStatus()
+  local status = self:status()
+  local safe = {
+    ok = status.ok == true and self.appConfigError == nil,
+    version = self.version,
+    modules = {},
+  }
+  if self.appConfigError then safe.configError = self.appConfigError end
+  for id, moduleStatus in pairs(status.modules or {}) do
+    safe.modules[id] = {
+      state = moduleStatus.state,
+      reason = moduleStatus.reason,
+    }
+  end
+  return safe
 end
 
 return ShortcutKit

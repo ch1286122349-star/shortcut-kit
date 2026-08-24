@@ -23,6 +23,14 @@ if [[ "$(/usr/bin/awk '/shortcut-kit:begin/{count++} END{print count+0}' "$test_
   echo "loader marker was not added exactly once" >&2
   exit 1
 fi
+if ! rg -q 'spoon\.ShortcutKit:startFromAppConfig\(\)' "$test_root/init.lua"; then
+  echo "App-aware loader was not installed" >&2
+  exit 1
+fi
+if ! rg -q 'shortcutKitAppStatus' "$test_root/init.lua"; then
+  echo "App status endpoint was not installed" >&2
+  exit 1
+fi
 "$project_root/scripts/verify-install.sh" --root "$test_root" --offline
 
 echo "install_test: PASS"

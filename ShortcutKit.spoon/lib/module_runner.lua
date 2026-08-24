@@ -20,7 +20,9 @@ function Runner:start(modules, config, context)
       detected, reason = false, "disabled"
     end
 
-    if not detected then
+    if not enabled then
+      report.modules[module.id] = { state = "disabled", reason = "disabled" }
+    elseif not detected then
       report.modules[module.id] = { state = "skipped", reason = reason or "dependency unavailable" }
     else
       local ok, err = xpcall(function()
