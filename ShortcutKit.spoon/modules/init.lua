@@ -4,4 +4,6 @@ return {
   require("modules.right_option").new(),
   require("modules.left_mouse_modifier").new(),
   require("modules.local_ocr").new(),
+  require("modules.chrome_recent_tabs").module(),
+  require("modules.chrome_mention").new(),
 }

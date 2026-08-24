@@ -23,11 +23,15 @@ ShortcutKit.defaults = {
     right_option = true,
     left_mouse_modifier = true,
     local_ocr = true,
+    chrome_recent_tabs = true,
+    chrome_mention = true,
   },
   hotkeys = {
     window_screenshot = { { "cmd" }, "r" },
     command_space = { { "cmd" }, "space" },
     local_ocr = { { "cmd" }, "s" },
+    chrome_mention_2 = { { "cmd", "shift" }, "2" },
+    chrome_mention_3 = { { "cmd", "shift" }, "3" },
   },
 }
 
