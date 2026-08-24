@@ -5,7 +5,7 @@ import SwiftUI
 struct HotkeyRecorderView: View {
     let displayText: String
     let onRecordingChange: (Bool) async -> Void
-    let onRecord: (HotkeySpec) -> Void
+    let onRecord: (HotkeySpec) async -> Void
     @State private var isRecording = false
     @State private var monitor: Any?
     @State private var validationMessage: String?
@@ -33,8 +33,11 @@ struct HotkeyRecorderView: View {
                 if event.keyCode == 53 { stopRecording(); return nil }
                 do {
                     let spec = try Self.spec(from: event)
-                    stopRecording()
-                    onRecord(spec)
+                    let wasRecording = endRecording()
+                    Task {
+                        if wasRecording { await onRecordingChange(false) }
+                        await onRecord(spec)
+                    }
                 } catch HotkeyValidationError.modifierRequired {
                     validationMessage = "字母和数字至少要配一个修饰键"
                 } catch {
@@ -46,11 +49,17 @@ struct HotkeyRecorderView: View {
     }
 
     private func stopRecording() {
+        let wasRecording = endRecording()
+        if wasRecording { Task { await onRecordingChange(false) } }
+    }
+
+    @discardableResult
+    private func endRecording() -> Bool {
         let wasRecording = isRecording
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
         isRecording = false
-        if wasRecording { Task { await onRecordingChange(false) } }
+        return wasRecording
     }
 
     private static func spec(from event: NSEvent) throws -> HotkeySpec {
@@ -61,16 +70,26 @@ struct HotkeyRecorderView: View {
         if flags.contains(.option) { modifiers.append("alt") }
         if flags.contains(.shift) { modifiers.append("shift") }
         if flags.contains(.function) { modifiers.append("fn") }
-        return try HotkeySpec(modifiers: modifiers, key: keyName(for: event))
+        return try HotkeySpec(
+            modifiers: modifiers,
+            key: keyName(keyCode: event.keyCode, charactersIgnoringModifiers: event.charactersIgnoringModifiers)
+        )
     }
 
-    private static func keyName(for event: NSEvent) -> String {
-        let special: [UInt16: String] = [
+    static func keyName(keyCode: UInt16, charactersIgnoringModifiers: String?) -> String {
+        let keyCodes: [UInt16: String] = [
+            0: "a", 1: "s", 2: "d", 3: "f", 4: "h", 5: "g", 6: "z", 7: "x",
+            8: "c", 9: "v", 11: "b", 12: "q", 13: "w", 14: "e", 15: "r",
+            16: "y", 17: "t", 18: "1", 19: "2", 20: "3", 21: "4", 22: "6",
+            23: "5", 24: "=", 25: "9", 26: "7", 27: "-", 28: "8", 29: "0",
+            30: "]", 31: "o", 32: "u", 33: "[", 34: "i", 35: "p", 37: "l",
+            38: "j", 39: "'", 40: "k", 41: ";", 42: "\\", 43: ",", 44: "/",
+            45: "n", 46: "m", 47: ".", 50: "`",
             36: "return", 48: "tab", 49: "space", 51: "delete", 53: "escape",
             123: "left", 124: "right", 125: "down", 126: "up",
             122: "f1", 120: "f2", 99: "f3", 118: "f4", 96: "f5", 97: "f6",
             98: "f7", 100: "f8", 101: "f9", 109: "f10", 103: "f11", 111: "f12",
         ]
-        return special[event.keyCode] ?? event.charactersIgnoringModifiers?.lowercased() ?? ""
+        return keyCodes[keyCode] ?? charactersIgnoringModifiers?.lowercased() ?? ""
     }
 }

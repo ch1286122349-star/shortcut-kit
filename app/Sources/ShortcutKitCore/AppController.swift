@@ -35,6 +35,16 @@ public final class AppController {
         runtimeReport = try? await bridge.status()
     }
 
+    public func reloadRuntime() async {
+        error = nil
+        do {
+            runtimeReport = try await bridge.reloadAndWait(expected: [:], timeout: 5)
+            configuration = try configStore.load()
+        } catch {
+            self.error = .configurationUnavailable
+        }
+    }
+
     public func setModule(id: String, enabled: Bool) async {
         await transact(expected: [id: enabled]) { config in
             config.setModule(id, enabled: enabled)
@@ -105,22 +115,25 @@ public final class AppController {
         error = nil
         defer { isBusy = false }
 
+        let original: AppConfiguration
+        do { original = try configStore.load() }
+        catch { self.error = .configurationUnavailable; return }
         do {
-            var next = try configStore.load()
+            var next = original
             mutation(&next)
             try configStore.save(next)
             let report = try await bridge.reloadAndWait(expected: expected, timeout: 5)
             configuration = next
             runtimeReport = report
         } catch {
-            await restoreAfterFailure(expectedIDs: Array(expected.keys))
+            await restoreAfterFailure(original: original, expectedIDs: Array(expected.keys))
         }
     }
 
-    private func restoreAfterFailure(expectedIDs: [String]) async {
+    private func restoreAfterFailure(original: AppConfiguration, expectedIDs: [String]) async {
         do {
-            try configStore.restorePrevious()
-            let restored = try configStore.load()
+            try configStore.save(original)
+            let restored = original
             let expected = Dictionary(uniqueKeysWithValues: expectedIDs.map {
                 ($0, restored.setting($0))
             })
@@ -142,8 +155,11 @@ public final class AppController {
         error = nil
         defer { isBusy = false }
 
+        let original: AppConfiguration
+        do { original = try configStore.load() }
+        catch { self.error = .configurationUnavailable; return }
         do {
-            var next = try configStore.load()
+            var next = original
             mutation(&next)
             try configStore.save(next)
             let report = try await bridge.reloadAndWait(
@@ -154,14 +170,17 @@ public final class AppController {
             configuration = next
             runtimeReport = report
         } catch {
-            await restoreHotkeysAfterFailure(actionIDs: Array(expected.keys))
+            await restoreHotkeysAfterFailure(
+                original: original,
+                actionIDs: Array(expected.keys)
+            )
         }
     }
 
-    private func restoreHotkeysAfterFailure(actionIDs: [String]) async {
+    private func restoreHotkeysAfterFailure(original: AppConfiguration, actionIDs: [String]) async {
         do {
-            try configStore.restorePrevious()
-            let restored = try configStore.load()
+            try configStore.save(original)
+            let restored = original
             var restoredBindings = defaultHotkeys
             restoredBindings.merge(restored.hotkeys) { _, override in override }
             let expected = Dictionary(uniqueKeysWithValues: actionIDs.compactMap { id in

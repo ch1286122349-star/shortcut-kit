@@ -36,7 +36,7 @@ struct ShortcutRowView: View {
                                 displayText: action.displayText,
                                 onRecordingChange: { active in await model.setRecordingMode(active) }
                             ) { spec in
-                                Task { await model.setHotkey(actionID: action.id, spec: spec) }
+                                await model.setHotkey(actionID: action.id, spec: spec)
                             }
                             if action.isOverridden {
                                 Button("恢复默认") { Task { await model.resetHotkey(actionID: action.id) } }

@@ -39,6 +39,7 @@ final class AppControllerTests: XCTestCase {
         XCTAssertEqual(try store.load().modules["local_ocr"], true)
         XCTAssertEqual(controller.runtimeReport, originalReport)
         XCTAssertEqual(controller.error, .reloadRolledBack)
+        XCTAssertEqual(store.restoreCallCount, 0)
     }
 
     func testMasterTogglePreservesUnknownModuleWhileSettingCatalogIDs() async throws {
@@ -134,6 +135,7 @@ final class AppControllerTests: XCTestCase {
 private final class FakeConfigStore: ConfigStoring, @unchecked Sendable {
     private var config: AppConfiguration
     private var previous: AppConfiguration?
+    private(set) var restoreCallCount = 0
 
     init(config: AppConfiguration) { self.config = config }
 
@@ -143,6 +145,7 @@ private final class FakeConfigStore: ConfigStoring, @unchecked Sendable {
         self.config = config
     }
     func restorePrevious() throws {
+        restoreCallCount += 1
         guard let previous else { throw ConfigStoreError.previousConfigurationUnavailable }
         config = previous
     }

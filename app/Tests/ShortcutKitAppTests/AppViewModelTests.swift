@@ -4,6 +4,13 @@ import XCTest
 
 @MainActor
 final class AppViewModelTests: XCTestCase {
+    func testRecorderUsesPhysicalDigitWhenShiftedCharacterIsPercent() {
+        XCTAssertEqual(
+            HotkeyRecorderView.keyName(keyCode: 23, charactersIgnoringModifiers: "%"),
+            "5"
+        )
+    }
+
     func testRowsSeparateRequestedPreferenceFromRuntimeFailure() async throws {
         let action = ShortcutActionDefinition(
             id: "codex_toggle",

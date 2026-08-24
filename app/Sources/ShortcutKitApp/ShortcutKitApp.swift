@@ -22,16 +22,17 @@ struct ShortcutKitApplication: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("ShortcutKit", systemImage: "keyboard") {
-            MenuBarContentView(model: model)
-        }
-        .menuBarExtraStyle(.menu)
-        Window("ShortcutKit 快捷键", id: "settings") {
+        WindowGroup("ShortcutKit 快捷键", id: "settings") {
             SettingsRootView(model: model)
                 .frame(minWidth: 760, minHeight: 580)
                 .task { await model.refresh() }
         }
         .defaultSize(width: 880, height: 680)
+
+        MenuBarExtra("ShortcutKit", systemImage: "keyboard") {
+            MenuBarContentView(model: model)
+        }
+        .menuBarExtraStyle(.menu)
     }
 
     private static func loadCatalog() throws -> [ShortcutDefinition] {

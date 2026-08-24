@@ -25,6 +25,13 @@ helper.assertEqual(result.modules.good.state, "enabled", "good module state")
 helper.assertEqual(result.modules.missing.state, "skipped", "missing module state")
 helper.assertEqual(result.modules.missing.reason, "app missing", "missing reason")
 
+local failed = runner:start({ {
+  id = "failed",
+  detect = function() return true end,
+  start = function() error("/Users/private/config.lua: invalid internal detail") end,
+} }, { modules = { failed = true } }, {})
+helper.assertEqual(failed.modules.failed.reason, "module failed to start", "runtime errors are sanitized")
+
 local registry = Registry.new({ ["cmd+r"] = "existing" })
 local claimed, conflict = registry:claim(
   "window_screenshot",

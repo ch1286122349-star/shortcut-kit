@@ -135,7 +135,8 @@ final class AppViewModel: ObservableObject {
             }
             try? await Task.sleep(nanoseconds: 1_000_000_000)
             installationMessage = "安装或修复完成"
-            await refresh()
+            await controller.reloadRuntime()
+            synchronize()
         } catch {
             errorMessage = "安装或修复失败，请在诊断页查看恢复方式。"
         }
