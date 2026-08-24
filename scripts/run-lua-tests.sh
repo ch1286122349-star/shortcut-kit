@@ -21,7 +21,7 @@ for test_file in "$project_root"/tests/lua/*_spec.lua; do
   escaped_root="${escaped_root//\"/\\\"}"
   escaped_test="${test_file//\\/\\\\}"
   escaped_test="${escaped_test//\"/\\\"}"
-  test_result="$("$hs_cli" -c "SHORTCUT_KIT_TEST_ROOT=\"$escaped_root\"; local ok,err=pcall(dofile,\"$escaped_test\"); return ok and \"PASS\" or \"FAIL:\"..tostring(err)")"
+  test_result="$("$hs_cli" -c "SHORTCUT_KIT_TEST_ROOT=\"$escaped_root\"; local ok,err=pcall(dofile,\"$escaped_test\"); return ok and \"PASS\" or \"FAIL:\"..tostring(err)" | tail -n 1)"
   if [[ "$test_result" != "PASS" ]]; then
     printf '%s: %s\n' "$(basename "$test_file")" "$test_result" >&2
     exit 1

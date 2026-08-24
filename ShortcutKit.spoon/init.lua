@@ -4,6 +4,7 @@ package.path = spoonPath .. "?.lua;" .. spoonPath .. "?/init.lua;" .. package.pa
 local Config = require("config")
 local Runner = require("lib.module_runner")
 local Logger = require("lib.logger")
+local Registry = require("lib.hotkey_registry")
 
 local ShortcutKit = {
   name = "ShortcutKit",
@@ -11,17 +12,33 @@ local ShortcutKit = {
   author = "ShortcutKit contributors",
   homepage = "https://github.com/shortcut-kit/shortcut-kit",
   license = "MIT",
-  modules = {},
+  modules = require("modules"),
   report = nil,
 }
 
-ShortcutKit.defaults = { modules = {} }
+ShortcutKit.defaults = {
+  modules = {
+    window_screenshot = true,
+    command_space = true,
+    right_option = true,
+    left_mouse_modifier = true,
+  },
+  hotkeys = {
+    window_screenshot = { { "cmd" }, "r" },
+    command_space = { { "cmd" }, "space" },
+  },
+}
 
 function ShortcutKit:start(userConfig)
   self.config = Config.load(self.defaults, userConfig or {})
   self.logger = Logger.new({ path = self.config.logPath })
+  self.registry = Registry.new(self.config.existingHotkeys or {})
   self.runner = Runner.new({ logger = self.logger })
-  self.report = self.runner:start(self.modules, self.config, { hs = hs, logger = self.logger })
+  self.report = self.runner:start(self.modules, self.config, {
+    hs = hs,
+    logger = self.logger,
+    registry = self.registry,
+  })
   return self
 end
 
