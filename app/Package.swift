@@ -13,7 +13,7 @@ let package = Package(
         .executableTarget(
             name: "ShortcutKitApp",
             dependencies: ["ShortcutKitCore"],
-            resources: [.process("Resources")]
+            exclude: ["Resources"]
         ),
         .testTarget(name: "ShortcutKitCoreTests", dependencies: ["ShortcutKitCore"]),
         .testTarget(name: "ShortcutKitAppTests", dependencies: ["ShortcutKitApp", "ShortcutKitCore"]),

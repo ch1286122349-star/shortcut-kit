@@ -35,7 +35,15 @@ struct ShortcutKitApplication: App {
     }
 
     private static func loadCatalog() throws -> [ShortcutDefinition] {
-        guard let url = Bundle.module.url(forResource: "shortcut-catalog", withExtension: "json") else {
+        let workingDirectory = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
+        let candidates = [
+            Bundle.main.url(forResource: "shortcut-catalog", withExtension: "json"),
+            workingDirectory.appendingPathComponent("Sources/ShortcutKitApp/Resources/shortcut-catalog.json"),
+            workingDirectory.appendingPathComponent("app/Sources/ShortcutKitApp/Resources/shortcut-catalog.json"),
+        ]
+        guard let url = candidates.compactMap({ $0 }).first(where: {
+            FileManager.default.fileExists(atPath: $0.path)
+        }) else {
             throw CocoaError(.fileNoSuchFile)
         }
         return try ShortcutCatalog.load(data: Data(contentsOf: url))
