@@ -34,9 +34,13 @@ if [[ -f "$init_path" ]]; then
 fi
 
 if [[ "$action" == "add" ]]; then
+  has_ipc=false
+  if /usr/bin/grep -Eq '^[[:space:]]*require\("hs\.ipc"\)[[:space:]]*$' "$temp_path"; then
+    has_ipc=true
+  fi
   {
     printf '\n-- shortcut-kit:begin\n'
-    if ! /usr/bin/grep -Eq '^[[:space:]]*require\("hs\.ipc"\)[[:space:]]*$' "$temp_path"; then
+    if [[ "$has_ipc" == false ]]; then
       printf 'require("hs.ipc")\n'
     fi
     printf 'hs.loadSpoon("ShortcutKit")\n'

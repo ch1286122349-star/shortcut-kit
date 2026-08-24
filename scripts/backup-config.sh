@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
+# shellcheck disable=SC1091
 source "$script_dir/lib/common.sh"
 
 [[ "${1:-}" == "create" && -n "${2:-}" ]] || { echo "Usage: backup-config.sh create <root>" >&2; exit 2; }

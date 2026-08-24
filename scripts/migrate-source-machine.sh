@@ -4,6 +4,7 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 project_root="$(cd "$script_dir/.." && pwd)"
 # shellcheck source=lib/common.sh
+# shellcheck disable=SC1091
 source "$script_dir/lib/common.sh"
 
 source_root=""

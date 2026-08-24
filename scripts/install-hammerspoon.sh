@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=hammerspoon-release.env
+# shellcheck disable=SC1091
 source "$script_dir/hammerspoon-release.env"
 
 if [[ -d "/Applications/Hammerspoon.app" || -d "$HOME/Applications/Hammerspoon.app" ]]; then
