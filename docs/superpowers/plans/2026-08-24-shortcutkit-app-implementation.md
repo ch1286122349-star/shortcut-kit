@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build and publish ShortcutKit v0.2.0 as a native macOS menu-bar application that controls the existing Hammerspoon shortcut runtime through a checkbox UI.
+**Goal:** Build and publish ShortcutKit v0.2.0 as a native macOS menu-bar application that controls the existing Hammerspoon shortcut runtime through a checkbox UI and lets users replace every ordinary default keyboard combination, including Command+R.
 
-**Architecture:** A dependency-free Swift Package produces a SwiftUI `LSUIElement` App. The App reads a bundled shortcut catalog, atomically manages a JSON config, invokes the existing reversible shell lifecycle, reloads Hammerspoon, and accepts a toggle only after live JSON status readback. Existing Lua modules remain the execution engine and shell commands remain the recovery path.
+**Architecture:** A dependency-free Swift Package produces a SwiftUI `LSUIElement` App. The App reads a bundled shortcut/action catalog, records and validates keyboard combinations, atomically manages module choices and hotkey overrides in JSON, invokes the existing reversible shell lifecycle, reloads Hammerspoon, and accepts a toggle or binding only after live JSON status readback. Existing Lua modules remain the execution engine and shell commands remain the recovery path.
 
 **Tech Stack:** Swift 6, SwiftUI, Foundation, ServiceManagement, XCTest, Lua/Hammerspoon, Bash, GitHub Actions, `hdiutil`, GitHub Releases.
 
@@ -19,6 +19,8 @@
 - Use `~/Library/Application Support/ShortcutKit/config.json` for App-managed preferences.
 - Never grant or mutate TCC permissions; only read status and open System Settings.
 - Preserve native mouse click, drag, and three-finger drag pass-through.
+- Treat shipped key combinations as defaults. Persist only user overrides and preserve them during updates.
+- Make ordinary keyboard actions editable; keep special gesture internals read-only but enable/disable capable in v0.2.0.
 - Keep WhatsApp interception restricted to the exact configured PWA bundle ID.
 - Publish unsigned DMG and ZIP artifacts through GitHub Releases; App Store submission and signing are deferred.
 - Public repository and Release target remain `ch1286122349-star/shortcut-kit`.
@@ -38,6 +40,8 @@
 
 **Interfaces:**
 - Produces: `ShortcutDefinition: Codable, Identifiable, Equatable, Sendable`.
+- Produces: `ShortcutActionDefinition` with stable action ID, editable flag, and optional default `HotkeySpec`.
+- Produces: canonical `HotkeySpec(modifiers:key:)` values suitable for config persistence and Hammerspoon conversion.
 - Produces: `ShortcutCatalog.load(data:) throws -> [ShortcutDefinition]`.
 - Produces: a stable `shortcut-catalog.json` whose IDs match every Lua module ID exactly.
 
@@ -74,7 +78,7 @@ Expected: FAIL because the Swift package and catalog types do not exist.
 public struct ShortcutDefinition: Codable, Identifiable, Equatable, Sendable {
     public let id: String
     public let title: String
-    public let keys: [String]
+    public let actions: [ShortcutActionDefinition]
     public let summary: String
     public let scope: String
     public let group: String
@@ -92,7 +96,9 @@ public enum ShortcutCatalog {
 }
 ```
 
-Create 12 localized catalog entries using the exact shortcuts and descriptions already documented in `README.md`.
+Create 12 localized module entries. Give every ordinary keyboard action a stable runtime key such as `window_screenshot`, `chrome_mention_2`, or `chatgpt_model_auto`, its current combination as `defaultHotkey`, and `editable: true`. Long right Option, left-mouse gestures, and the automatic BTT bridge use read-only action labels with no `HotkeySpec`.
+
+Add focused tests for modifier canonicalization, invalid unmodified alphanumeric keys, duplicate action IDs, and duplicate default bindings.
 
 - [ ] **Step 4: Add a shell assertion that the catalog and Lua manifest IDs match**
 
@@ -119,7 +125,7 @@ git commit -m "feat: add ShortcutKit app catalog models"
 - Create: `app/Tests/ShortcutKitCoreTests/DiagnosticsSanitizerTests.swift`
 
 **Interfaces:**
-- Produces: `AppConfiguration(schemaVersion: Int, modules: [String: Bool])`.
+- Produces: `AppConfiguration(schemaVersion: Int, modules: [String: Bool], hotkeys: [String: HotkeySpec])`.
 - Produces: `ConfigStore.load()`, `ConfigStore.save(_:)`, `ConfigStore.restorePrevious()`.
 - Produces: `DiagnosticsSanitizer.sanitize(_:) -> [String: String]`.
 
@@ -135,8 +141,13 @@ func testSaveCreatesRecoverablePreviousConfiguration() throws {
 }
 
 func testUpdatingKnownModulePreservesUnknownModule() throws {
-    let original = AppConfiguration(schemaVersion: 1, modules: ["future_module": true])
+    let original = AppConfiguration(
+        schemaVersion: 1,
+        modules: ["future_module": true],
+        hotkeys: ["future_action": .init(modifiers: ["ctrl"], key: "9")]
+    )
     XCTAssertEqual(original.setting("future_module"), true)
+    XCTAssertEqual(original.hotkeys["future_action"]?.key, "9")
 }
 ```
 
@@ -146,7 +157,7 @@ Run: `cd app && swift test --filter ConfigStoreTests`
 
 - [ ] **Step 3: Implement same-directory temporary writes and rollback**
 
-Use `FileManager.replaceItemAt` when the destination exists and `moveItem` on first write. Store `config.previous.json` before replacement. Refuse schema versions other than `1`, malformed module values, and directory targets.
+Use `FileManager.replaceItemAt` when the destination exists and `moveItem` on first write. Store `config.previous.json` before replacement. Refuse schema versions other than `1`, malformed module values, malformed hotkey specs, and directory targets. Preserve unknown module and hotkey keys.
 
 - [ ] **Step 4: Write and implement diagnostics allow-list tests**
 
@@ -188,8 +199,10 @@ git commit -m "feat: add atomic app configuration storage"
 - [ ] **Step 1: Write failing Lua tests for missing, valid, and malformed App config**
 
 ```lua
-local config, err = AppConfig.decode('{"schemaVersion":1,"modules":{"local_ocr":false}}')
+local config, err = AppConfig.decode('{"schemaVersion":1,"modules":{"local_ocr":false},"hotkeys":{"window_screenshot":{"modifiers":["ctrl","shift"],"key":"5"}}}')
 helper.assertEqual(config.modules.local_ocr, false, "module setting maps to runtime config")
+helper.assertEqual(config.hotkeys.window_screenshot[1][1], "ctrl", "hotkey modifier maps to runtime tuple")
+helper.assertEqual(config.hotkeys.window_screenshot[2], "5", "hotkey key maps to runtime tuple")
 
 local invalid, invalidErr = AppConfig.decode('{"schemaVersion":2,"modules":{}}')
 helper.assertEqual(invalid, nil, "unknown schema fails closed")
@@ -202,7 +215,9 @@ Run: `./scripts/run-lua-tests.sh app_config`
 
 - [ ] **Step 3: Implement App config decoding and JSON-safe status**
 
-The status table must include `ok`, `version`, and a `modules` map whose values contain only `state` and `reason`. Do not include local paths or application content.
+Decode allow-listed modifier names and non-empty keys, canonicalize aliases, and reject malformed specs without replacing the last valid runtime. The status table must include `ok`, `version`, a `modules` map whose values contain only `state` and `reason`, and an `actions` map with sanitized canonical bindings. Do not include local paths or application content.
+
+Parameterize the currently event-tap-based `chrome_recent_tabs` and `whatsapp_command_w` modules so their trigger checks use App-provided hotkey specs while preserving exact app scoping and event pass-through.
 
 - [ ] **Step 4: Update marked loaders idempotently**
 
@@ -243,6 +258,7 @@ git commit -m "feat: add app-managed Hammerspoon configuration"
 - Produces: `RuntimeReport: Codable, Equatable, Sendable`.
 - Produces: `HammerspoonBridge.status() async throws -> RuntimeReport`.
 - Produces: `HammerspoonBridge.reloadAndWait(expected:timeout:) async throws -> RuntimeReport`.
+- Produces: `HammerspoonBridge.checkConflict(spec:excludingActionID:) async throws -> HotkeyConflict?`.
 
 - [ ] **Step 1: Write failing bridge tests with a fake ProcessRunning implementation**
 
@@ -276,6 +292,8 @@ Run Hammerspoon CLI with:
 
 Poll every 250 milliseconds for up to 5 seconds. A reload succeeds only when the report is `ok` and every requested module matches enabled/disabled semantics.
 
+Add a fixed Hammerspoon IPC function that checks the proposed spec against ShortcutKit's active action registry and `hs.hotkey.systemAssigned`. Return only conflict kind, action ID when applicable, and canonical display text. If the system API is unavailable, return an explicit `systemCheckAvailable: false` value.
+
 - [ ] **Step 5: Run Swift tests and commit**
 
 ```bash
@@ -295,7 +313,7 @@ git commit -m "feat: add Hammerspoon runtime bridge"
 
 **Interfaces:**
 - Produces: `InstallationService.preview()`, `install()`, `repair()`, `uninstall()`, `restore()`.
-- Produces: `@MainActor AppController` with `refresh()`, `setModule(id:enabled:)`, and `setAll(enabled:)`.
+- Produces: `@MainActor AppController` with `refresh()`, `setModule(id:enabled:)`, `setAll(enabled:)`, `setHotkey(actionID:spec:)`, `resetHotkey(actionID:)`, and `resetAllHotkeys()`.
 
 - [ ] **Step 1: Write the failing rollback transaction test**
 
@@ -316,6 +334,8 @@ Run: `cd app && swift test --filter AppControllerTests`
 - [ ] **Step 3: Implement AppController state and rollback flow**
 
 Disable controls while a transaction is running. Store the requested preference even when a dependency is missing, but treat a skipped dependency as a valid runtime outcome. Treat module errors and missing status as rollback failures.
+
+For hotkey edits, validate input and enabled ShortcutKit duplicates locally, ask HammerspoonBridge for active/system conflicts, atomically store only the override, and require action binding readback after reload. On any failure restore the previous config and runtime. Reset removes the override so catalog/runtime defaults take effect; global reset removes only known action overrides and preserves unknown future keys.
 
 - [ ] **Step 4: Implement InstallationService around fixed bundled executables**
 
@@ -338,6 +358,7 @@ git commit -m "feat: add transactional shortcut controls"
 - Create: `app/Sources/ShortcutKitApp/Views/MenuBarContentView.swift`
 - Create: `app/Sources/ShortcutKitApp/Views/ShortcutListView.swift`
 - Create: `app/Sources/ShortcutKitApp/Views/ShortcutRowView.swift`
+- Create: `app/Sources/ShortcutKitApp/Views/HotkeyRecorderView.swift`
 - Create: `app/Sources/ShortcutKitApp/Views/DependenciesView.swift`
 - Create: `app/Sources/ShortcutKitApp/Views/DiagnosticsView.swift`
 - Create: `app/Sources/ShortcutKitApp/Views/InstallRepairView.swift`
@@ -347,6 +368,7 @@ git commit -m "feat: add transactional shortcut controls"
 **Interfaces:**
 - Produces: native `MenuBarExtra` and Settings scene.
 - Produces: view states derived only from AppController and ShortcutCatalog.
+- Produces: an accessible recorder that captures one intentional combination without firing the underlying action.
 - Produces: `LaunchAtLoginService.isEnabled` and `setEnabled(_:)` using `SMAppService.mainApp`.
 
 - [ ] **Step 1: Write failing view-model tests**
@@ -369,13 +391,15 @@ Run: `cd app && swift test --filter AppViewModelTests`
 
 Use `MenuBarExtra("ShortcutKit", systemImage: "keyboard")` and a `WindowGroup` or Settings scene. Group rows by catalog group, use native Toggle controls, and expose accessibility labels containing title, key combination, requested state, and live state.
 
+Each editable action has a key recorder and a Restore Default button when overridden. A module with several actions shows one recorder per action. The recorder intercepts the next keyDown while focused, renders a canonical preview, blocks invalid or conflicting input with the exact source, and supports Escape to cancel. Add a Restore All Default Keys command separate from the master enable toggle.
+
 - [ ] **Step 4: Implement dependencies and diagnostics views**
 
 Show specific actions: Install/Repair, Open Accessibility Settings, Open Screen Recording Settings, Refresh, Copy Sanitized Diagnostics, and Restore Previous Configuration. Do not display raw stdout or stderr.
 
 - [ ] **Step 5: Build and run self-test mode**
 
-Add `--self-test` handling that loads the catalog and config in a temporary directory, validates 12 rows, prints `ShortcutKitApp self-test: PASS`, and exits without opening UI.
+Add `--self-test` handling that loads the catalog and config in a temporary directory, validates 12 rows, checks every editable action has a valid unique default, round-trips one Command+R override replacement and reset, prints `ShortcutKitApp self-test: PASS`, and exits without opening UI.
 
 Run: `cd app && swift run ShortcutKitApp --self-test`
 

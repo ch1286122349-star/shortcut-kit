@@ -17,6 +17,8 @@ The first App release keeps Hammerspoon as the proven shortcut runtime. The App 
 - Native SwiftUI menu-bar application with a settings window.
 - A catalog row for every existing ShortcutKit module, including its key combination, purpose, scope, dependency, and current state.
 - Per-module enable/disable checkbox and an all-modules master toggle.
+- A native key recorder for every ordinary keyboard action. The shipped combinations, including Command+R, are defaults rather than fixed requirements.
+- Duplicate/conflict validation before save, plus per-action and global restore-default controls.
 - Live states: enabled, disabled, dependency unavailable, permission unavailable, conflict, and runtime error.
 - Dependency and permission page for Hammerspoon, Accessibility, Screen Recording, Chrome, Codex, MailMaster, ChatGPT Classic, WhatsApp Edge PWA, and BetterTouchTool.
 - One-click install or repair of the bundled ShortcutKit Spoon and loader.
@@ -28,7 +30,7 @@ The first App release keeps Hammerspoon as the proven shortcut runtime. The App 
 
 ### Explicitly deferred
 
-- Editing or recording arbitrary key combinations.
+- Editing the internal timing or output behavior of special gestures such as long-press right Option and left-mouse-plus-letter. These modules can still be enabled or disabled.
 - Replacing Hammerspoon with a new native event-tap engine.
 - App Store submission.
 - Automatic macOS TCC permission grants or bypasses.
@@ -54,11 +56,21 @@ Each row contains:
 - a one-line explanation;
 - scope or required application;
 - enable checkbox;
+- an editable key recorder for each ordinary keyboard action, or a read-only special-gesture label;
+- restore-default control when the user has overridden a key;
 - live state badge and actionable failure explanation.
 
 Rows are grouped into Global, Browser and Codex, Applications, and Optional Integration. Multi-key features such as the two Codex mention keys and four ChatGPT model keys remain one module row because they are controlled by one runtime module.
 
-The master toggle writes every known module state. It never changes unknown keys preserved in the configuration file.
+The master toggle writes every known module state. It never changes unknown keys preserved in the configuration file. A separate Restore All Default Keys action removes only known hotkey overrides and does not change enabled states.
+
+Recording a new key never activates the shortcut while the recorder has focus. The recorder requires an intentional modifier for ordinary alphanumeric keys, canonicalizes modifier order, and checks the proposed combination against:
+
+- every other enabled ShortcutKit action;
+- Hammerspoon's active hotkey registry;
+- macOS-reserved assignments when Hammerspoon can report them.
+
+A confirmed conflict blocks saving and names the source. If macOS cannot report a system assignment reliably, the UI labels that check as unavailable instead of claiming the combination is free.
 
 ### Permissions and Dependencies
 
@@ -95,13 +107,13 @@ app/
 
 1. **ShortcutCatalog**
    - Reads bundled `shortcut-catalog.json`.
-   - Defines stable module IDs, localized labels, key display strings, scope, and dependency metadata.
+   - Defines stable module IDs and stable action IDs, localized labels, default `HotkeySpec` values, editability, scope, and dependency metadata.
    - Validates that catalog IDs exactly match the runtime module manifest during tests.
 
 2. **ConfigStore**
    - Reads and writes `~/Library/Application Support/ShortcutKit/config.json`.
    - Uses same-directory temporary files followed by atomic replacement.
-   - Preserves unknown fields for forward compatibility.
+   - Preserves unknown module and hotkey entries for forward compatibility.
    - Creates a recoverable previous-config snapshot before each mutation.
 
 3. **HammerspoonBridge**
@@ -109,6 +121,7 @@ app/
    - Runs bounded `Process` commands with explicit arguments and timeouts.
    - Reads a machine-safe JSON runtime report.
    - Treats the expected message-port invalidation during `hs.reload()` as transitional, then polls the fresh status endpoint.
+   - Asks Hammerspoon to validate a proposed hotkey against active and system-assigned combinations.
 
 4. **InstallationService**
    - Invokes bundled lifecycle scripts rather than duplicating installer logic in Swift.
@@ -123,10 +136,11 @@ app/
 6. **AppModel**
    - Owns catalog, config, runtime report, busy/error state, and rollback state.
    - Coordinates toggle transactions and refreshes.
+   - Coordinates hotkey validation, save, reload, rollback, and restore-default transactions.
    - Publishes state to SwiftUI on the main actor.
 
 7. **SwiftUI views**
-   - `MenuBarContentView`, `ShortcutListView`, `ShortcutRowView`, `DependenciesView`, `DiagnosticsView`, and `InstallRepairView`.
+   - `MenuBarContentView`, `ShortcutListView`, `ShortcutRowView`, `HotkeyRecorderView`, `DependenciesView`, `DiagnosticsView`, and `InstallRepairView`.
    - Uses native macOS controls and accessibility labels.
 
 ## Runtime and Configuration Flow
@@ -140,11 +154,17 @@ The App-managed configuration is JSON:
     "window_screenshot": true,
     "local_ocr": true,
     "chatgpt_classic": false
+  },
+  "hotkeys": {
+    "window_screenshot": {
+      "modifiers": ["cmd"],
+      "key": "r"
+    }
   }
 }
 ```
 
-The Hammerspoon loader reads this file with `hs.json.read`, passes the `modules` map to `spoon.ShortcutKit:start`, and exposes a JSON-safe `shortcutKitAppStatus()` function. Existing `shortcutKitStatus()` remains for compatibility.
+Only user overrides are stored in `hotkeys`; missing entries use catalog/runtime defaults. The Hammerspoon loader reads this file with `hs.json.read`, converts each validated `HotkeySpec` to Hammerspoon's `{ modifiers, key }` tuple, passes the `modules` and `hotkeys` maps to `spoon.ShortcutKit:start`, and exposes a JSON-safe `shortcutKitAppStatus()` function. Existing `shortcutKitStatus()` remains for compatibility.
 
 Toggle transaction:
 
@@ -157,6 +177,15 @@ Toggle transaction:
 7. On timeout, missing status, or module error, ConfigStore restores the previous config, reloads again, and shows a specific error.
 
 No toggle is reported successful until live Hammerspoon readback agrees with the requested state.
+
+Hotkey edit transaction:
+
+1. User focuses a recorder and presses a new combination.
+2. The App canonicalizes the key and runs local duplicate validation.
+3. HammerspoonBridge checks active Hammerspoon and reportable macOS assignments.
+4. A conflict blocks save and shows its source.
+5. Otherwise ConfigStore atomically writes the override and Hammerspoon reloads.
+6. The App accepts the change only when live status reports the requested action binding; otherwise it restores the previous config and runtime.
 
 ## Installation and Upgrade
 
@@ -178,7 +207,7 @@ On first launch:
 
 The App does not require administrator privileges. If Homebrew exists, the existing installer may use its Hammerspoon cask. Otherwise it uses the pinned official Hammerspoon ZIP and checksum. It never installs Homebrew itself.
 
-Updates replace the Spoon only after a backup and preserve user module choices. The CLI lifecycle remains compatible with App-managed installations. Uninstall removes only ShortcutKit; Hammerspoon remains unless the user separately removes it.
+Updates replace the Spoon only after a backup and preserve user module choices and hotkey overrides. The CLI lifecycle remains compatible with App-managed installations. Uninstall removes only ShortcutKit; Hammerspoon remains unless the user separately removes it.
 
 ## Distribution Outside the App Store
 
@@ -191,6 +220,7 @@ The packaging pipeline supports future Developer ID signing and Apple notarizati
 - Missing Hammerspoon: show Install, do not render module state as enabled.
 - Missing dependency: disable only the affected module and retain the user's requested preference.
 - Hotkey conflict: show the failing module and conflicting key; other modules remain active.
+- Invalid recording: keep the old binding active and explain the modifier/key rule without writing config.
 - Reload message-port invalidation: poll status rather than treating the reload command's exit code as final.
 - Config parse failure: keep the last known good runtime, quarantine the invalid file through a recoverable rename, and present Restore.
 - Installer failure: show the sanitized step and retain the pre-install backup.
@@ -210,8 +240,8 @@ The packaging pipeline supports future Developer ID signing and Apple notarizati
 
 ### Automated tests
 
-- Swift unit tests for catalog decoding, stable IDs, config merging, atomic writes, status decoding, sanitized diagnostics, and rollback decisions.
-- Lua tests verify App JSON configuration mapping and the JSON status endpoint.
+- Swift unit tests for catalog decoding, stable module/action IDs, hotkey canonicalization and conflicts, config merging, atomic writes, status decoding, sanitized diagnostics, and rollback decisions.
+- Lua tests verify App JSON module/hotkey mapping, invalid hotkey rejection, action binding readback, and the JSON status endpoint.
 - Shell tests cover App packaging, embedded resource completeness, DMG/ZIP construction, checksums, and lifecycle compatibility.
 - Public audit scans the App bundle staging tree and release archives for private paths, logs, backups, secrets, and unapproved binaries.
 - CI builds the App and universal OCR helper on macOS, runs Swift/Lua/shell tests, packages release artifacts, and uploads them without publishing.
@@ -221,7 +251,8 @@ The packaging pipeline supports future Developer ID signing and Apple notarizati
 - Install the packaged App, not a development executable.
 - Verify menu-bar and settings UI launch.
 - Toggle at least one global module and one app-specific module off and on, with live status readback.
-- Repeat three consecutive Command+R screenshots.
+- Change window screenshot from Command+R to a non-conflicting temporary combination, take three consecutive screenshots, restore Command+R, and repeat three times.
+- Verify an internal duplicate and a reportable system conflict are both blocked, then verify per-action and global restore-default behavior.
 - Verify local OCR and dependency states.
 - Confirm ordinary click, drag, and three-finger drag remain native.
 - Exercise update, uninstall, restore, and final reinstall.
