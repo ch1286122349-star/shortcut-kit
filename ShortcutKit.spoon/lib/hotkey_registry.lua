@@ -30,7 +30,7 @@ function Registry:claim(moduleId, actionId, modifiers, key)
     return false, { shortcut = shortcut, owner = owner, module = moduleId, action = actionId }
   end
   local claimed = self.claims[shortcut]
-  if claimed and claimed.module ~= moduleId then
+  if claimed and (claimed.module ~= moduleId or claimed.action ~= actionId) then
     return false, { shortcut = shortcut, owner = claimed.module, module = moduleId, action = actionId }
   end
   self.claims[shortcut] = { module = moduleId, action = actionId }
@@ -38,5 +38,27 @@ function Registry:claim(moduleId, actionId, modifiers, key)
 end
 
 Registry.canonical = canonical
+
+function Registry:actions()
+  local actions = {}
+  for shortcut, claim in pairs(self.claims) do actions[claim.action] = shortcut end
+  return actions
+end
+
+function Registry:conflict(modifiers, key, excludingAction)
+  local shortcut = canonical(modifiers, key)
+  local owner = self.existing[shortcut]
+  if owner then return { kind = "hammerspoon", description = tostring(owner), shortcut = shortcut } end
+  local claimed = self.claims[shortcut]
+  if claimed and claimed.action ~= excludingAction then
+    return {
+      kind = "shortcutKit",
+      actionID = claimed.action,
+      description = claimed.module,
+      shortcut = shortcut,
+    }
+  end
+  return nil
+end
 
 return Registry

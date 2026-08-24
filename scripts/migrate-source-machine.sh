@@ -85,8 +85,9 @@ init_stage="$(mktemp "$source_root/.shortcut-kit-init.XXXXXX")"
 {
   printf '%s\n' 'require("hs.ipc")'
   printf '%s\n' 'hs.loadSpoon("ShortcutKit")'
-  printf '%s\n' 'spoon.ShortcutKit:start()'
+  printf '%s\n' 'spoon.ShortcutKit:startFromAppConfig()'
   printf '%s\n' 'shortcutKitStatus = function() return spoon.ShortcutKit:status() end'
+  printf '%s\n' 'shortcutKitAppStatus = function() return spoon.ShortcutKit:appStatus() end'
 } > "$init_stage"
 chmod 600 "$init_stage"
 mv "$init_stage" "$source_root/init.lua"

@@ -47,6 +47,16 @@ helper.assertEqual(
   false,
   "modified WhatsApp Command+W is not intercepted"
 )
+helper.assertEqual(
+  WhatsApp.shouldIntercept("k", { ctrl = true, shift = true }, exactWhatsApp, { { "ctrl", "shift" }, "k" }),
+  true,
+  "WhatsApp trigger can be customized"
+)
+helper.assertEqual(
+  WhatsApp.shouldIntercept("w", { cmd = true }, exactWhatsApp, { { "ctrl", "shift" }, "k" }),
+  false,
+  "old WhatsApp trigger stops matching after customization"
+)
 
 helper.assertEqual(BTT.isAvailable({ application = { get = function() return nil end } }), false, "missing BTT disables bridge")
 helper.assertEqual(BTT.isAvailable({ application = { get = function(id) return id == BTT.BUNDLE_ID and {} or nil end } }), true, "running BTT enables bridge")

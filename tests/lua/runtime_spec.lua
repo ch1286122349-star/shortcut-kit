@@ -25,6 +25,13 @@ helper.assertEqual(result.modules.good.state, "enabled", "good module state")
 helper.assertEqual(result.modules.missing.state, "skipped", "missing module state")
 helper.assertEqual(result.modules.missing.reason, "app missing", "missing reason")
 
+local failed = runner:start({ {
+  id = "failed",
+  detect = function() return true end,
+  start = function() error("/Users/private/config.lua: invalid internal detail") end,
+} }, { modules = { failed = true } }, {})
+helper.assertEqual(failed.modules.failed.reason, "module failed to start", "runtime errors are sanitized")
+
 local registry = Registry.new({ ["cmd+r"] = "existing" })
 local claimed, conflict = registry:claim(
   "window_screenshot",
@@ -34,6 +41,15 @@ local claimed, conflict = registry:claim(
 )
 helper.assertEqual(claimed, false, "conflicting hotkey is not claimed")
 helper.assertEqual(conflict.owner, "existing", "conflict owner")
+
+local sameModule = Registry.new()
+helper.assertEqual(sameModule:claim("chatgpt_classic", "chatgpt_toggle", { "cmd" }, "g"), true, "first action claims key")
+local duplicateActionClaim = sameModule:claim("chatgpt_classic", "chatgpt_model_auto", { "cmd" }, "g")
+helper.assertEqual(duplicateActionClaim, false, "different actions in one module cannot share a key")
+helper.assertEqual(sameModule:actions().chatgpt_toggle, "cmd+g", "action bindings are reportable")
+local sameModuleConflict = sameModule:conflict({ "cmd" }, "g", "window_screenshot")
+helper.assertEqual(sameModuleConflict.actionID, "chatgpt_toggle", "conflict names the active action")
+helper.assertEqual(sameModule:conflict({ "cmd" }, "g", "chatgpt_toggle"), nil, "edited action excludes itself")
 
 local merged = Config.load({
   modules = { generic = true, optional = true },

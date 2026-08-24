@@ -1,6 +1,20 @@
 local History = require("modules.chrome_history")
 
 local RecentTabs = { id = "chrome_recent_tabs" }
+
+local allModifiers = { "cmd", "ctrl", "alt", "shift", "fn" }
+
+function RecentTabs.matchesHotkey(key, flags, spec)
+  spec = spec or { { "cmd" }, "3" }
+  flags = flags or {}
+  if tostring(key):lower() ~= tostring(spec[2]):lower() then return false end
+  local required = {}
+  for _, modifier in ipairs(spec[1] or {}) do required[modifier] = true end
+  for _, modifier in ipairs(allModifiers) do
+    if (flags[modifier] == true) ~= (required[modifier] == true) then return false end
+  end
+  return true
+end
 RecentTabs.__index = RecentTabs
 
 RecentTabs.chrome = {}
@@ -85,9 +99,14 @@ function RecentTabs.module()
       "Google Chrome is not installed"
   end
 
-  function module:start(context)
+  function module:start(context, config)
     self.hs = context.hs
     local hs = self.hs
+    local spec = ((config.hotkeys or {}).chrome_recent_tabs) or { { "cmd" }, "3" }
+    if context.registry then
+      local claimed, conflict = context.registry:claim(self.id, "chrome_recent_tabs", spec[1], spec[2])
+      if not claimed then error("hotkey conflict: " .. conflict.shortcut) end
+    end
     local function chromeFrontmost()
       local app = hs.application.frontmostApplication()
       return app and app:bundleID() == "com.google.Chrome"
@@ -96,8 +115,9 @@ function RecentTabs.module()
     local types = hs.eventtap.event.types
     self.commandTap = hs.eventtap.new({ types.keyDown, types.keyUp }, function(event)
       local flags = event:getFlags()
-      if event:getKeyCode() ~= hs.keycodes.map["3"] or not flags.cmd or flags.alt
-        or flags.ctrl or flags.shift or flags.fn or not chromeFrontmost() then return false end
+      if event:getKeyCode() ~= hs.keycodes.map[spec[2]]
+        or not RecentTabs.matchesHotkey(spec[2], flags, spec)
+        or not chromeFrontmost() then return false end
       if event:getType() == types.keyDown
         and event:getProperty(hs.eventtap.event.properties.keyboardEventAutorepeat) ~= 1 then
         self.runtime:toggle()

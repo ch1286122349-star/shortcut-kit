@@ -17,10 +17,10 @@ generic_secret_pattern='(api[_-]?key|access[_-]?token|client[_-]?secret)[[:space
 while IFS= read -r -d '' file_path; do
   relative="${file_path#"$tree"/}"
   case "$relative" in
-    .git|.git/*|.worktrees/*|build/*|dist/*) continue ;;
+    .git|.git/*|.worktrees/*|app/.build/*|build/*|dist/*) continue ;;
   esac
   case "$relative" in
-    *.log|*/logs/*|*/backups/*|*.bak) fail_rule "runtime-artifact" ;;
+    *.log|*/logs/*|*/backups/*|*.bak|*.diagnostics.json|*/diagnostics/*) fail_rule "runtime-artifact" ;;
   esac
   if LC_ALL=C /usr/bin/grep -aEq "$private_pattern" "$file_path"; then fail_rule "private-home-path"; fi
   if LC_ALL=C /usr/bin/grep -aEq "$private_key_pattern" "$file_path"; then fail_rule "private-key"; fi
@@ -28,8 +28,11 @@ while IFS= read -r -d '' file_path; do
   if LC_ALL=C /usr/bin/grep -aEiq "$generic_secret_pattern" "$file_path"; then fail_rule "embedded-secret"; fi
 
   file_kind="$(/usr/bin/file -b "$file_path")"
-  if [[ "$file_kind" == *"Mach-O"* && "$relative" != "ShortcutKit.spoon/bin/local-ocr" ]]; then
-    fail_rule "unapproved-binary"
+  if [[ "$file_kind" == *"Mach-O"* ]]; then
+    case "$relative" in
+      ShortcutKit.spoon/bin/local-ocr|Contents/MacOS/ShortcutKitApp|Contents/Resources/ShortcutKit.spoon/bin/local-ocr) ;;
+      *) fail_rule "unapproved-binary" ;;
+    esac
   fi
 done < <(find "$tree" -type f -print0)
 

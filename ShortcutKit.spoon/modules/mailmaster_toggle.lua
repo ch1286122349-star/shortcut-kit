@@ -54,8 +54,8 @@ function Module:start(context, config)
   self.hs = context.hs
   self.hotkeys = {}
   for _, item in ipairs({
-    { "toggle_5", (config.hotkeys or {}).mailmaster_toggle or { { "cmd" }, "5" } },
-    { "toggle_pad5", (config.hotkeys or {}).mailmaster_pad5 or { { "cmd" }, "pad5" } },
+    { "mailmaster_toggle", (config.hotkeys or {}).mailmaster_toggle or { { "cmd" }, "5" } },
+    { "mailmaster_pad5", (config.hotkeys or {}).mailmaster_pad5 or { { "cmd" }, "pad5" } },
   }) do
     if context.registry then
       local ok, conflict = context.registry:claim(self.id, item[1], item[2][1], item[2][2])

@@ -28,7 +28,9 @@ if [[ -f "$init_path" ]]; then
     /^[[:space:]]*-- shortcut-kit:end[[:space:]]*$/ { skipping=0; next }
     !skipping && $0 == "hs.loadSpoon(\"ShortcutKit\")" { next }
     !skipping && $0 == "spoon.ShortcutKit:start()" { next }
+    !skipping && $0 == "spoon.ShortcutKit:startFromAppConfig()" { next }
     !skipping && $0 == "shortcutKitStatus = function() return spoon.ShortcutKit:status() end" { next }
+    !skipping && $0 == "shortcutKitAppStatus = function() return spoon.ShortcutKit:appStatus() end" { next }
     !skipping { print }
   ' "$init_path" > "$temp_path"
 fi
@@ -44,8 +46,9 @@ if [[ "$action" == "add" ]]; then
       printf 'require("hs.ipc")\n'
     fi
     printf 'hs.loadSpoon("ShortcutKit")\n'
-    printf 'spoon.ShortcutKit:start()\n'
+    printf 'spoon.ShortcutKit:startFromAppConfig()\n'
     printf 'shortcutKitStatus = function() return spoon.ShortcutKit:status() end\n'
+    printf 'shortcutKitAppStatus = function() return spoon.ShortcutKit:appStatus() end\n'
     printf '%s\n' '-- shortcut-kit:end'
   } >> "$temp_path"
 fi

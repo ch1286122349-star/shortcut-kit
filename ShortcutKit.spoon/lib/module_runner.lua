@@ -1,6 +1,15 @@
 local Runner = {}
 Runner.__index = Runner
 
+local function safeError(errorValue)
+  local text = tostring(errorValue or "")
+  local shortcut = text:match("hotkey conflict:%s*([%w%+%-_]+)")
+  if shortcut then return "hotkey conflict: " .. shortcut end
+  local invalidKey = text:match("Invalid key:%s*([^%s]+)")
+  if invalidKey then return "invalid hotkey: " .. invalidKey end
+  return "module failed to start"
+end
+
 function Runner.new(options)
   options = options or {}
   return setmetatable({ logger = options.logger }, Runner)
@@ -20,7 +29,9 @@ function Runner:start(modules, config, context)
       detected, reason = false, "disabled"
     end
 
-    if not detected then
+    if not enabled then
+      report.modules[module.id] = { state = "disabled", reason = "disabled" }
+    elseif not detected then
       report.modules[module.id] = { state = "skipped", reason = reason or "dependency unavailable" }
     else
       local ok, err = xpcall(function()
@@ -29,7 +40,7 @@ function Runner:start(modules, config, context)
       if ok then
         report.modules[module.id] = { state = "enabled" }
       else
-        report.modules[module.id] = { state = "error", reason = tostring(err) }
+        report.modules[module.id] = { state = "error", reason = safeError(err) }
         report.ok = false
         if self.logger and self.logger.error then
           self.logger:error(module.id .. " failed to start")
