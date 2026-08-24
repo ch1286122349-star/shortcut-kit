@@ -19,4 +19,19 @@ if rg -q '/Users/' "$fixture/output.txt"; then
   exit 1
 fi
 
+rm -f "$fixture/leak.txt" "$fixture/output.txt"
+printf '{"clipboard":"private"}\n' > "$fixture/session.diagnostics.json"
+if "$project_root/scripts/audit-public-files.sh" "$fixture" > "$fixture/output.txt" 2>&1; then
+  echo "raw app diagnostics must fail" >&2
+  exit 1
+fi
+if ! rg -q 'runtime-artifact' "$fixture/output.txt"; then
+  echo "audit did not report the diagnostics rule" >&2
+  exit 1
+fi
+if rg -q 'private' "$fixture/output.txt"; then
+  echo "audit output exposed diagnostics content" >&2
+  exit 1
+fi
+
 echo "public_audit_test: PASS"

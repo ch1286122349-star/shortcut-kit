@@ -1,8 +1,18 @@
 # ShortcutKit
 
-把一套经过实机验证的 macOS 快捷键打包成可审计、可更新、可卸载、可恢复的开源 Hammerspoon 配置。安装器不会替你绕过 macOS 权限，也不会覆盖未备份的配置。
+一个可在 GitHub 直接下载的开源 macOS 快捷键管理器。菜单栏 App 会列出每个快捷键，支持逐项开关、直接录入新组合、冲突检查和恢复默认；Hammerspoon 作为后台运行引擎。安装器不会绕过 macOS 权限，也不会覆盖未备份的配置。
 
-## 30 秒安装
+## 最简单的安装方式
+
+1. 从 [GitHub Releases](https://github.com/ch1286122349-star/shortcut-kit/releases/tag/v0.2.0) 下载 `ShortcutKit-v0.2.0.dmg`。
+2. 打开 DMG，把 `ShortcutKit.app` 拖入“应用程序”。
+3. 首次打开如果出现开发者警告，在 Finder 中右键 App 选择“打开”，或到“系统设置 → 隐私与安全性”允许打开。
+4. 在 ShortcutKit 的“权限与依赖”页点击“安装或修复”。它会安装 App 携带的 ShortcutKit；电脑没有 Hammerspoon 时也会一并安装。
+5. 按 macOS 提示，手动给 Hammerspoon开启“辅助功能”和“屏幕录制”。
+
+v0.2.0 是未签名、未公证的 GitHub 开源版本，不经过 Mac App Store。请只从本仓库 Release 下载，并核对随附的 SHA-256 文件。
+
+### 通过源码安装或恢复
 
 ```bash
 git clone https://github.com/ch1286122349-star/shortcut-kit.git
@@ -11,11 +21,23 @@ cd shortcut-kit
 ./install.sh --apply
 ```
 
-也可以在 Finder 双击 `安装.command`。如果电脑尚未安装 Hammerspoon，脚本会优先使用 Homebrew Cask；没有 Homebrew 时下载固定版本的官方 ZIP 并校验 SHA-256，不会自动安装 Homebrew。
+也可以在 Finder 双击 `安装.command`。如果电脑尚未安装 Hammerspoon，脚本会优先使用 Homebrew Cask；没有 Homebrew 时下载固定版本的官方 ZIP并校验 SHA-256，不会自动安装 Homebrew。
 
 首次使用时，macOS 会要求你手动授予 Hammerspoon“辅助功能”和“屏幕录制”权限。ShortcutKit 无法也不会自动授予这些权限。
 
-## 快捷键
+## App 里能做什么
+
+- 菜单栏快速打开设置、开启/关闭全部快捷键、查看运行状态。
+- 每个模块单独勾选开启或关闭；依赖缺失只影响对应模块。
+- 点击普通快捷键的按键框，直接按下新组合即可替换默认值。例如窗口截图不必使用 `⌘ R`，可以改成 `⌃ ⇧ 5`。
+- 保存前检查 ShortcutKit 内部重复、Hammerspoon 已占用组合和 macOS 可报告的系统快捷键。
+- 单项“恢复默认”或“全部恢复默认按键”；不会改变各模块开关。
+- 用户自定义组合写入 `~/Library/Application Support/ShortcutKit/config.json`，更新 App 或 Spoon 时保留。
+- 长按右 Option、左键+C/V/D 等特殊手势在本版可开关；手势内部规则暂不开放编辑。
+
+## 默认快捷键
+
+下面只是出厂预设，不是写死的按键：
 
 | 快捷键 | 作用 | 生效范围 |
 |---|---|---|
@@ -56,13 +78,13 @@ BetterTouchTool 运行且变量 API 可读时，会自动启用截图释放桥�
 
 ## 自定义
 
-参考 [`config.example.lua`](config.example.lua)，把需要覆盖的表传给 `spoon.ShortcutKit:start({...})`。应用候选 Bundle ID、模块开关和快捷键都可以调整。
+推荐直接在 App 中录入。高级用户仍可参考 [`config.example.lua`](config.example.lua) 调整应用候选 Bundle ID；App 管理的模块开关和快捷键覆盖保存在 JSON 配置中。更新只替换程序文件，不清除用户选择。
 
 ## 常见问题
 
 - **按键没反应：** 打开 Hammerspoon Console，运行 `shortcutKitStatus()`；确认辅助功能权限和对应应用是否被检测到。
 - **截图/OCR 无结果：** 确认 Hammerspoon 有屏幕录制权限；OCR 取消框选不会产生错误提示。
-- **快捷键冲突：** 检查 macOS 系统快捷键、Hammerspoon、BetterTouchTool、Karabiner 等来源，再修改 `hotkeys` 覆盖项。
+- **快捷键冲突：** App 会阻止已确认的内部、Hammerspoon 或系统冲突，并显示来源；BetterTouchTool、Karabiner 等无法完整自动读取的第三方来源仍需手动检查。
 - **安装被开发者警告拦住：** 本项目不经过 App Store；请只从你信任的仓库和 Release 校验包安装。
 - **想完整回退：** 先运行 `./restore.sh --dry-run` 查看目标，再运行 `--apply`。
 

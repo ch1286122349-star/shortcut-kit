@@ -16,8 +16,13 @@ jobs:
         run: brew install lua shellcheck ripgrep
       - name: Shell syntax and lint
         run: |
-          bash -n install.sh update.sh uninstall.sh restore.sh scripts/*.sh scripts/lib/*.sh tests/shell/*.sh
-          shellcheck install.sh update.sh uninstall.sh restore.sh scripts/*.sh scripts/lib/*.sh tests/shell/*.sh
+          bash -n install.sh update.sh uninstall.sh restore.sh scripts/*.sh scripts/lib/*.sh app/Resources/scripts/*.sh tests/shell/*.sh
+          shellcheck install.sh update.sh uninstall.sh restore.sh scripts/*.sh scripts/lib/*.sh app/Resources/scripts/*.sh tests/shell/*.sh
+      - name: Swift tests and App self-test
+        run: |
+          cd app
+          swift test
+          swift run ShortcutKitApp --self-test
       - name: Lua tests
         env:
           HS_CLI: /nonexistent/hs
@@ -28,11 +33,18 @@ jobs:
         run: ./scripts/audit-public-files.sh .
       - name: Build universal OCR helper
         run: ./scripts/build-ocr.sh && bash tests/shell/build_ocr_test.sh
-      - name: Package release candidate
-        run: ./scripts/package-release.sh v0.1.0
+      - name: Package App release candidate
+        run: |
+          ./scripts/package-dmg.sh v0.2.0
+          ./scripts/audit-public-files.sh build/ShortcutKit.app
+          cd dist
+          shasum -a 256 -c ShortcutKit-v0.2.0.dmg.sha256
+          shasum -a 256 -c ShortcutKit-v0.2.0.zip.sha256
       - uses: actions/upload-artifact@v4
         with:
-          name: shortcut-kit-v0.1.0
+          name: ShortcutKit-v0.2.0-candidate
           path: |
-            dist/shortcut-kit-v0.1.0.zip
-            dist/shortcut-kit-v0.1.0.zip.sha256
+            dist/ShortcutKit-v0.2.0.dmg
+            dist/ShortcutKit-v0.2.0.dmg.sha256
+            dist/ShortcutKit-v0.2.0.zip
+            dist/ShortcutKit-v0.2.0.zip.sha256

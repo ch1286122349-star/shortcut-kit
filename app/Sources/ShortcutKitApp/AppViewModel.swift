@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 import ShortcutKitCore
@@ -125,6 +126,14 @@ final class AppViewModel: ObservableObject {
                 .appendingPathComponent(".hammerspoon", isDirectory: true)
             let service = InstallationService(resourceRoot: resources, hammerspoonRoot: root)
             _ = try await service.repair(skipHammerspoon: false)
+            let appCandidates = [
+                URL(fileURLWithPath: "/Applications/Hammerspoon.app"),
+                FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications/Hammerspoon.app"),
+            ]
+            if let appURL = appCandidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+                _ = try? await NSWorkspace.shared.openApplication(at: appURL, configuration: .init())
+            }
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
             installationMessage = "安装或修复完成"
             await refresh()
         } catch {

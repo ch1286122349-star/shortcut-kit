@@ -1,8 +1,18 @@
 # ShortcutKit
 
-ShortcutKit packages a tested set of macOS shortcuts as an auditable, reversible Hammerspoon configuration.
+ShortcutKit is an open-source macOS menu-bar shortcut manager distributed through GitHub. It lists every shortcut, supports per-module toggles, records replacement key combinations, checks conflicts, and restores defaults. Hammerspoon remains the background runtime.
 
-## Install in 30 seconds
+## Install the App
+
+1. Download `ShortcutKit-v0.2.0.dmg` from the [v0.2.0 GitHub Release](https://github.com/ch1286122349-star/shortcut-kit/releases/tag/v0.2.0).
+2. Open the DMG and drag `ShortcutKit.app` into Applications.
+3. On first launch, use Finder's **Open** command or allow the App in Privacy & Security if Gatekeeper shows an unidentified-developer warning.
+4. Open **Permissions & Dependencies** and choose **Install or Repair**. The bundled installer also installs Hammerspoon when it is missing.
+5. Grant Accessibility and Screen Recording to Hammerspoon when macOS asks.
+
+v0.2.0 is unsigned and not notarized. It does not use the Mac App Store. Download it only from this repository and verify the provided SHA-256 files.
+
+### Source and recovery install
 
 ```bash
 git clone https://github.com/ch1286122349-star/shortcut-kit.git
@@ -13,9 +23,15 @@ cd shortcut-kit
 
 You can also double-click `安装.command`. If Hammerspoon is missing, the installer uses Homebrew Cask when available, otherwise it downloads the pinned official ZIP and verifies its SHA-256. It never installs Homebrew or grants macOS permissions automatically.
 
-Grant Accessibility and Screen Recording to Hammerspoon when macOS prompts you. Each app-specific module auto-detects its dependency and is skipped independently when unavailable.
+Each app-specific module auto-detects its dependency and is skipped independently when unavailable.
 
-## Included shortcuts
+## Customizable shortcuts
+
+The combinations below are defaults, not fixed requirements. Click an ordinary shortcut in the App and press a replacement combination—for example, window capture can change from `⌘ R` to `⌃ ⇧ 5`. ShortcutKit checks its own enabled actions, active Hammerspoon claims, and macOS system assignments that Hammerspoon can report. Per-action and global reset controls remove only known overrides. User choices survive updates.
+
+Long right Option and left-mouse gestures can be enabled or disabled in v0.2.0, while their internal timing and output rules remain read-only.
+
+## Default shortcuts
 
 | Shortcut | Action |
 |---|---|
@@ -40,6 +56,6 @@ Grant Accessibility and Screen Recording to Hammerspoon when macOS prompts you. 
 ./restore.sh --apply
 ```
 
-Installation backs up the existing config and adds one marked loader block. Shortcut conflicts fail closed. Uninstall removes ShortcutKit only; restore recovers the latest backup. See [`config.example.lua`](config.example.lua) for module, hotkey, and bundle-ID overrides.
+Installation backs up the existing config and adds one marked loader block. Confirmed shortcut conflicts fail closed. Uninstall removes ShortcutKit only; restore recovers the latest backup. The App stores user choices in `~/Library/Application Support/ShortcutKit/config.json`; advanced bundle-ID overrides remain documented in [`config.example.lua`](config.example.lua).
 
 For security reports, see [SECURITY.md](SECURITY.md). Contributions are described in [CONTRIBUTING.md](CONTRIBUTING.md).

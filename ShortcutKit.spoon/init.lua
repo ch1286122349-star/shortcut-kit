@@ -9,7 +9,7 @@ local AppConfig = require("lib.app_config")
 
 local ShortcutKit = {
   name = "ShortcutKit",
-  version = "0.1.0",
+  version = "0.2.0",
   author = "ShortcutKit contributors",
   homepage = "https://github.com/ch1286122349-star/shortcut-kit",
   license = "MIT",

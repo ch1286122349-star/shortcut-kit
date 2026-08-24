@@ -1,8 +1,6 @@
 .worktrees/
 build/
 app/.build/
-build/
-dist/
 dist/
 *.log
 *.bak

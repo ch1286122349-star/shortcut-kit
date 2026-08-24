@@ -58,7 +58,7 @@ public struct HammerspoonBridge: HammerspoonBridging, Sendable {
 
     public func status() async throws -> RuntimeReport {
         let result = try await runner.run(
-            executable: executableURL,
+            executable: resolvedExecutableURL(),
             arguments: ["-c", Self.statusCommand],
             timeout: 3
         )
@@ -80,7 +80,7 @@ public struct HammerspoonBridge: HammerspoonBridging, Sendable {
         local request=hs.json.decode(hs.base64.decode("\(encoded)")); return hs.json.encode(spoon.ShortcutKit:checkHotkeyConflict(request.modifiers,request.key,request.excludingActionID))
         """
         let result = try await runner.run(
-            executable: executableURL,
+            executable: resolvedExecutableURL(),
             arguments: ["-c", command],
             timeout: 3
         )
@@ -103,7 +103,7 @@ public struct HammerspoonBridge: HammerspoonBridging, Sendable {
     public func setRecordingMode(_ active: Bool) async throws {
         let command = "return spoon.ShortcutKit:setRecordingMode(\(active ? "true" : "false"))"
         let result = try await runner.run(
-            executable: executableURL,
+            executable: resolvedExecutableURL(),
             arguments: ["-c", command],
             timeout: 3
         )
@@ -123,7 +123,7 @@ public struct HammerspoonBridge: HammerspoonBridging, Sendable {
         timeout: TimeInterval = 5
     ) async throws -> RuntimeReport {
         _ = try? await runner.run(
-            executable: executableURL,
+            executable: resolvedExecutableURL(),
             arguments: ["-c", "hs.reload()"],
             timeout: min(timeout, 3)
         )
@@ -176,6 +176,20 @@ public struct HammerspoonBridge: HammerspoonBridging, Sendable {
     private static let statusCommand = """
     return hs.json.encode(shortcutKitAppStatus and shortcutKitAppStatus() or {ok=false,version=\"unknown\",modules={},configError=\"missing\"})
     """
+
+    private func resolvedExecutableURL(fileManager: FileManager = .default) -> URL {
+        if fileManager.isExecutableFile(atPath: executableURL.path) { return executableURL }
+        let home = fileManager.homeDirectoryForCurrentUser.path
+        let candidates = [
+            "/opt/homebrew/bin/hs",
+            "/usr/local/bin/hs",
+            "/Applications/Hammerspoon.app/Contents/Frameworks/hs",
+            "\(home)/Applications/Hammerspoon.app/Contents/Frameworks/hs",
+        ]
+        return candidates.map(URL.init(fileURLWithPath:))
+            .first(where: { fileManager.isExecutableFile(atPath: $0.path) })
+            ?? executableURL
+    }
 }
 
 private struct ConflictRequest: Encodable {

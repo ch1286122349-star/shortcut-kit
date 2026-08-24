@@ -91,6 +91,7 @@ enum HammerspoonLocator {
             "/opt/homebrew/bin/hs",
             "/usr/local/bin/hs",
             "/Applications/Hammerspoon.app/Contents/Frameworks/hs",
+            "\(fileManager.homeDirectoryForCurrentUser.path)/Applications/Hammerspoon.app/Contents/Frameworks/hs",
         ]
         return candidates.map(URL.init(fileURLWithPath:))
             .first(where: { fileManager.isExecutableFile(atPath: $0.path) })
