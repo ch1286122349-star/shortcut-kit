@@ -1,7 +1,7 @@
 # ShortcutKit 设计规格
 
 - 日期：2026-08-24
-- 状态：待用户书面规格确认
+- 状态：用户已确认
 - 默认仓库名：`shortcut-kit`
 - 发布方式：公开 GitHub 仓库
 - 许可证：MIT
@@ -111,7 +111,9 @@ shortcut-kit/
 │   │   └── safe_task.lua
 │   └── bin/
 │       ├── local-ocr.swift
-│       └── release binaries
+│       ├── local-ocr-arm64
+│       ├── local-ocr-x86_64
+│       └── local-ocr-universal
 ├── config.example.lua
 ├── scripts/
 │   ├── preflight.sh
@@ -319,4 +321,3 @@ Hammerspoon 首次运行后，用户必须在 macOS 中手动授予辅助功能�
 - **ChatGPT Classic 内部偏好变化**：模块检测偏好结构，不满足时禁用模型切换但保留打开/隐藏。
 - **公开隐私泄漏**：发布前对 Git 历史和工作树分别扫描。
 - **Hammerspoon 或 macOS 更新变化**：记录最低版本，模块启动失败隔离，CI 与发布清单保留版本读回。
-
