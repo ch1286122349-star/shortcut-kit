@@ -5,7 +5,7 @@ ShortcutKit packages a tested set of macOS shortcuts as an auditable, reversible
 ## Install in 30 seconds
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USER/shortcut-kit.git
+git clone https://github.com/ch1286122349-star/shortcut-kit.git
 cd shortcut-kit
 ./install.sh --dry-run
 ./install.sh --apply
