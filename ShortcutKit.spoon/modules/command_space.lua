@@ -8,7 +8,7 @@ function Module:start(context, config)
   self.hs = context.hs
   local spec = ((config.hotkeys or {}).command_space) or { { "cmd" }, "space" }
   if context.registry then
-    local ok, conflict = context.registry:claim(self.id, "open", spec[1], spec[2])
+    local ok, conflict = context.registry:claim(self.id, "command_space", spec[1], spec[2])
     if not ok then error("hotkey conflict: " .. conflict.shortcut) end
   end
   self.hotkey = self.hs.hotkey.bind(spec[1], spec[2], function()

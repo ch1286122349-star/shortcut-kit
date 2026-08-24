@@ -5,6 +5,16 @@ local Mention = helper.requireProject("modules.chrome_mention")
 helper.assertEqual(type(RecentTabs.chrome), "table", "Chrome integration boundary is exposed")
 helper.assertEqual(type(RecentTabs.chrome.readCurrent), "function", "Chrome current-tab reader is exposed")
 helper.assertEqual(type(RecentTabs.chrome.switchTo), "function", "Chrome tab switcher is exposed")
+helper.assertEqual(
+  RecentTabs.matchesHotkey("k", { ctrl = true, shift = true }, { { "ctrl", "shift" }, "k" }),
+  true,
+  "Chrome recent-tabs trigger can be customized"
+)
+helper.assertEqual(
+  RecentTabs.matchesHotkey("3", { cmd = true }, { { "ctrl", "shift" }, "k" }),
+  false,
+  "old Chrome trigger stops matching after customization"
+)
 
 local current = { windowID = 10, tabID = 101 }
 local validTabs = { [101] = true, [102] = true }

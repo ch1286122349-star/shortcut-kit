@@ -46,7 +46,7 @@ function Module:start(context, config)
   self.hs = assert(context.hs, "Hammerspoon context is required")
   local spec = ((config.hotkeys or {}).window_screenshot) or { { "cmd" }, "r" }
   if context.registry then
-    local claimed, conflict = context.registry:claim(self.id, "capture", spec[1], spec[2])
+    local claimed, conflict = context.registry:claim(self.id, "window_screenshot", spec[1], spec[2])
     if not claimed then error("hotkey conflict: " .. conflict.shortcut) end
   end
   self.hotkey = self.hs.hotkey.bind(spec[1], spec[2], nil, function() self:capture() end)

@@ -26,8 +26,8 @@ function Module:start(context, config)
   self.hs = context.hs
   local hotkeys = config.hotkeys or {}
   local specs = {
-    { action = "mention_2", spec = hotkeys.chrome_mention_2 or { { "cmd", "shift" }, "2" } },
-    { action = "mention_3", spec = hotkeys.chrome_mention_3 or { { "cmd", "shift" }, "3" } },
+    { action = "chrome_mention_2", spec = hotkeys.chrome_mention_2 or { { "cmd", "shift" }, "2" } },
+    { action = "chrome_mention_3", spec = hotkeys.chrome_mention_3 or { { "cmd", "shift" }, "3" } },
   }
   self.hotkeys = {}
   for _, item in ipairs(specs) do

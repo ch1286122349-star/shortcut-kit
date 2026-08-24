@@ -6,7 +6,36 @@ public enum HammerspoonBridgeError: Error, Equatable {
     case statusTimeout
 }
 
-public struct HammerspoonBridge: Sendable {
+public protocol HammerspoonBridging: Sendable {
+    func status() async throws -> RuntimeReport
+    func reloadAndWait(expected: [String: Bool], timeout: TimeInterval) async throws -> RuntimeReport
+    func reloadAndWait(
+        expectedModules: [String: Bool],
+        expectedHotkeys: [String: HotkeySpec],
+        timeout: TimeInterval
+    ) async throws -> RuntimeReport
+    func checkConflict(spec: HotkeySpec, excludingActionID: String) async throws -> HotkeyConflict?
+}
+
+public extension HammerspoonBridging {
+    func reloadAndWait(
+        expectedModules: [String: Bool],
+        expectedHotkeys: [String: HotkeySpec],
+        timeout: TimeInterval
+    ) async throws -> RuntimeReport {
+        let report = try await reloadAndWait(expected: expectedModules, timeout: timeout)
+        guard expectedHotkeys.allSatisfy({ report.actions[$0.key] == $0.value.canonicalString }) else {
+            throw HammerspoonBridgeError.statusTimeout
+        }
+        return report
+    }
+
+    func checkConflict(spec: HotkeySpec, excludingActionID: String) async throws -> HotkeyConflict? {
+        nil
+    }
+}
+
+public struct HammerspoonBridge: HammerspoonBridging, Sendable {
     private let runner: any ProcessRunning
     public let executableURL: URL
     public let pollIntervalNanoseconds: UInt64
@@ -34,8 +63,50 @@ public struct HammerspoonBridge: Sendable {
         return try decodeReport(result.stdout)
     }
 
+    public func checkConflict(
+        spec: HotkeySpec,
+        excludingActionID: String
+    ) async throws -> HotkeyConflict? {
+        let request = ConflictRequest(
+            modifiers: spec.modifiers,
+            key: spec.key,
+            excludingActionID: excludingActionID
+        )
+        let encoded = try JSONEncoder().encode(request).base64EncodedString()
+        let command = """
+        local request=hs.json.decode(hs.base64.decode("\(encoded)")); return hs.json.encode(spoon.ShortcutKit:checkHotkeyConflict(request.modifiers,request.key,request.excludingActionID))
+        """
+        let result = try await runner.run(
+            executable: executableURL,
+            arguments: ["-c", command],
+            timeout: 3
+        )
+        guard result.exitCode == 0 else { throw HammerspoonBridgeError.commandFailed }
+        guard let data = lastJSONData(result.stdout),
+              let response = try? JSONDecoder().decode(ConflictResponse.self, from: data) else {
+            throw HammerspoonBridgeError.invalidStatus
+        }
+        switch response.kind {
+        case "none": return nil
+        case "shortcutKit":
+            guard let actionID = response.actionID else { throw HammerspoonBridgeError.invalidStatus }
+            return .shortcutKit(actionID: actionID)
+        case "hammerspoon": return .hammerspoon(description: response.description ?? "Hammerspoon")
+        case "system": return .system(description: response.description ?? "macOS system shortcut")
+        default: throw HammerspoonBridgeError.invalidStatus
+        }
+    }
+
     public func reloadAndWait(
         expected: [String: Bool],
+        timeout: TimeInterval = 5
+    ) async throws -> RuntimeReport {
+        try await reloadAndWait(expectedModules: expected, expectedHotkeys: [:], timeout: timeout)
+    }
+
+    public func reloadAndWait(
+        expectedModules: [String: Bool],
+        expectedHotkeys: [String: HotkeySpec],
         timeout: TimeInterval = 5
     ) async throws -> RuntimeReport {
         _ = try? await runner.run(
@@ -53,7 +124,9 @@ public struct HammerspoonBridge: Sendable {
                 try? await Task.sleep(nanoseconds: pollIntervalNanoseconds)
             }
             guard let report = try? await status() else { continue }
-            if report.ok && Self.matches(report: report, expected: expected) {
+            if report.ok
+                && Self.matches(report: report, expected: expectedModules)
+                && expectedHotkeys.allSatisfy({ report.actions[$0.key] == $0.value.canonicalString }) {
                 return report
             }
         }
@@ -61,11 +134,7 @@ public struct HammerspoonBridge: Sendable {
     }
 
     private func decodeReport(_ output: String) throws -> RuntimeReport {
-        let line = output
-            .split(whereSeparator: \Character.isNewline)
-            .map(String.init)
-            .last(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix("{") })
-        guard let line, let data = line.data(using: .utf8) else {
+        guard let data = lastJSONData(output) else {
             throw HammerspoonBridgeError.invalidStatus
         }
         do {
@@ -73,6 +142,14 @@ public struct HammerspoonBridge: Sendable {
         } catch {
             throw HammerspoonBridgeError.invalidStatus
         }
+    }
+
+    private func lastJSONData(_ output: String) -> Data? {
+        let line = output
+            .split(whereSeparator: \Character.isNewline)
+            .map(String.init)
+            .last(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix("{") })
+        return line?.data(using: .utf8)
     }
 
     private static func matches(report: RuntimeReport, expected: [String: Bool]) -> Bool {
@@ -86,4 +163,17 @@ public struct HammerspoonBridge: Sendable {
     private static let statusCommand = """
     return hs.json.encode(shortcutKitAppStatus and shortcutKitAppStatus() or {ok=false,version=\"unknown\",modules={},configError=\"missing\"})
     """
+}
+
+private struct ConflictRequest: Encodable {
+    let modifiers: [String]
+    let key: String
+    let excludingActionID: String
+}
+
+private struct ConflictResponse: Decodable {
+    let kind: String
+    let actionID: String?
+    let description: String?
+    let systemCheckAvailable: Bool
 }

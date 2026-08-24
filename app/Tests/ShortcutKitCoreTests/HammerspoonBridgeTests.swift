@@ -62,6 +62,37 @@ final class HammerspoonBridgeTests: XCTestCase {
         }
     }
 
+    func testConflictCheckDecodesShortcutKitAndSystemSources() async throws {
+        let shortcutRunner = FakeProcessRunner(results: [
+            ProcessResult(
+                exitCode: 0,
+                stdout: #"{"kind":"shortcutKit","actionID":"local_ocr","description":"local_ocr","systemCheckAvailable":true}"#,
+                stderr: ""
+            ),
+        ])
+        let shortcutBridge = HammerspoonBridge(runner: shortcutRunner, executableURL: URL(fileURLWithPath: "/fake/hs"))
+        let spec = try HotkeySpec(modifiers: ["cmd"], key: "s")
+        let shortcutConflict = try await shortcutBridge.checkConflict(
+            spec: spec,
+            excludingActionID: "window_screenshot"
+        )
+        XCTAssertEqual(shortcutConflict, .shortcutKit(actionID: "local_ocr"))
+
+        let systemRunner = FakeProcessRunner(results: [
+            ProcessResult(
+                exitCode: 0,
+                stdout: #"{"kind":"system","description":"macOS system shortcut","systemCheckAvailable":true}"#,
+                stderr: ""
+            ),
+        ])
+        let systemBridge = HammerspoonBridge(runner: systemRunner, executableURL: URL(fileURLWithPath: "/fake/hs"))
+        let systemConflict = try await systemBridge.checkConflict(
+            spec: spec,
+            excludingActionID: "window_screenshot"
+        )
+        XCTAssertEqual(systemConflict, .system(description: "macOS system shortcut"))
+    }
+
     private static let runtimeJSON = """
     {"ok":true,"version":"0.2.0","modules":{"local_ocr":{"state":"enabled"}}}
     """

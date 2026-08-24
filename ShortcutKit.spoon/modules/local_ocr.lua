@@ -80,7 +80,7 @@ function Module:start(context, config)
   end
   local spec = ((config.hotkeys or {}).local_ocr) or { { "cmd" }, "s" }
   if context.registry then
-    local ok, conflict = context.registry:claim(self.id, "recognize", spec[1], spec[2])
+    local ok, conflict = context.registry:claim(self.id, "local_ocr", spec[1], spec[2])
     if not ok then error("hotkey conflict: " .. conflict.shortcut) end
   end
   self.hotkey = self.hs.hotkey.bind(spec[1], spec[2], nil, function() self:trigger() end)

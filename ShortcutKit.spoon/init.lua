@@ -36,6 +36,7 @@ ShortcutKit.defaults = {
     window_screenshot = { { "cmd" }, "r" },
     command_space = { { "cmd" }, "space" },
     local_ocr = { { "cmd" }, "s" },
+    chrome_recent_tabs = { { "cmd" }, "3" },
     chrome_mention_2 = { { "cmd", "shift" }, "2" },
     chrome_mention_3 = { { "cmd", "shift" }, "3" },
     codex_toggle = { { "cmd" }, "2" },
@@ -47,6 +48,7 @@ ShortcutKit.defaults = {
     chatgpt_model_instant = { { "ctrl", "alt" }, "2" },
     chatgpt_model_thinking = { { "ctrl", "alt" }, "3" },
     chatgpt_model_pro = { { "ctrl", "alt" }, "4" },
+    whatsapp_command_w = { { "cmd" }, "w" },
   },
   apps = {
     codex = { "com.openai.codex" },
@@ -93,6 +95,7 @@ function ShortcutKit:appStatus()
     ok = status.ok == true and self.appConfigError == nil,
     version = self.version,
     modules = {},
+    actions = self.registry and self.registry:actions() or {},
   }
   if self.appConfigError then safe.configError = self.appConfigError end
   for id, moduleStatus in pairs(status.modules or {}) do
@@ -102,6 +105,28 @@ function ShortcutKit:appStatus()
     }
   end
   return safe
+end
+
+function ShortcutKit:checkHotkeyConflict(modifiers, key, excludingAction)
+  local conflict = self.registry and self.registry:conflict(modifiers, key, excludingAction) or nil
+  if conflict then
+    conflict.systemCheckAvailable = type(hs.hotkey.systemAssigned) == "function"
+    return conflict
+  end
+  if type(hs.hotkey.systemAssigned) ~= "function" then
+    return { kind = "none", systemCheckAvailable = false }
+  end
+  local ok, assignment = pcall(hs.hotkey.systemAssigned, modifiers, key)
+  if not ok then return { kind = "none", systemCheckAvailable = false } end
+  if type(assignment) == "table" and assignment.enabled ~= false then
+    return {
+      kind = "system",
+      description = "macOS system shortcut",
+      shortcut = Registry.canonical(modifiers, key),
+      systemCheckAvailable = true,
+    }
+  end
+  return { kind = "none", systemCheckAvailable = true }
 end
 
 return ShortcutKit

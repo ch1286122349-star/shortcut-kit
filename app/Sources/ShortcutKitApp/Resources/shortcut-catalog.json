@@ -1,105 +1,79 @@
 [
   {
-    "id": "window_screenshot",
-    "title": "窗口截图",
-    "keys": ["⌘ R"],
-    "summary": "截取鼠标所在窗口并复制到剪贴板",
-    "scope": "全局",
-    "group": "全局"
+    "id": "window_screenshot", "title": "窗口截图",
+    "actions": [{"id": "window_screenshot", "title": "截取窗口", "defaultHotkey": {"modifiers": ["cmd"], "key": "r"}}],
+    "summary": "截取鼠标所在窗口并复制到剪贴板", "scope": "全局", "group": "全局"
   },
   {
-    "id": "command_space",
-    "title": "打开",
-    "keys": ["⌘ Space"],
-    "summary": "发送原生 Command+O",
-    "scope": "全局",
-    "group": "全局"
+    "id": "command_space", "title": "打开",
+    "actions": [{"id": "command_space", "title": "打开", "defaultHotkey": {"modifiers": ["cmd"], "key": "space"}}],
+    "summary": "发送原生 Command+O", "scope": "全局", "group": "全局"
   },
   {
-    "id": "right_option",
-    "title": "三空格",
-    "keys": ["长按右 Option"],
-    "summary": "长按后松开输入三个空格",
-    "scope": "全局",
-    "group": "全局"
+    "id": "right_option", "title": "三空格",
+    "actions": [{"id": "right_option_hold", "title": "长按右 Option"}],
+    "summary": "长按后松开输入三个空格", "scope": "全局", "group": "全局"
   },
   {
-    "id": "left_mouse_modifier",
-    "title": "鼠标组合",
-    "keys": ["左键 + C", "左键 + V", "左键 + D"],
-    "summary": "复制、粘贴或删除，鼠标事件保持透传",
-    "scope": "全局",
-    "group": "全局"
+    "id": "left_mouse_modifier", "title": "鼠标组合",
+    "actions": [
+      {"id": "left_mouse_copy", "title": "左键 + C"},
+      {"id": "left_mouse_paste", "title": "左键 + V"},
+      {"id": "left_mouse_delete", "title": "左键 + D"}
+    ],
+    "summary": "复制、粘贴或删除，鼠标事件保持透传", "scope": "全局", "group": "全局"
   },
   {
-    "id": "local_ocr",
-    "title": "本地 OCR",
-    "keys": ["⌘ S"],
-    "summary": "框选屏幕并在本机识别文字",
-    "scope": "全局",
-    "group": "全局"
+    "id": "local_ocr", "title": "本地 OCR",
+    "actions": [{"id": "local_ocr", "title": "本地 OCR", "defaultHotkey": {"modifiers": ["cmd"], "key": "s"}}],
+    "summary": "框选屏幕并在本机识别文字", "scope": "全局", "group": "全局"
   },
   {
-    "id": "chrome_recent_tabs",
-    "title": "Chrome 最近标签",
-    "keys": ["⌘ 3"],
-    "summary": "返回当前 Chrome 窗口最近使用的标签",
-    "scope": "Chrome",
-    "group": "浏览器与 Codex",
-    "dependency": "Google Chrome"
+    "id": "chrome_recent_tabs", "title": "Chrome 最近标签",
+    "actions": [{"id": "chrome_recent_tabs", "title": "最近标签", "defaultHotkey": {"modifiers": ["cmd"], "key": "3"}}],
+    "summary": "返回当前 Chrome 窗口最近使用的标签", "scope": "Chrome", "group": "浏览器与 Codex", "dependency": "Google Chrome"
   },
   {
-    "id": "chrome_mention",
-    "title": "Codex Chrome 提及",
-    "keys": ["⌘ ⇧ 2", "⌘ ⇧ 3"],
-    "summary": "输入 @chrome，等待候选后按 Tab",
-    "scope": "Codex",
-    "group": "浏览器与 Codex",
-    "dependency": "Codex"
+    "id": "chrome_mention", "title": "Codex Chrome 提及",
+    "actions": [
+      {"id": "chrome_mention_2", "title": "提及 Chrome 2", "defaultHotkey": {"modifiers": ["cmd", "shift"], "key": "2"}},
+      {"id": "chrome_mention_3", "title": "提及 Chrome 3", "defaultHotkey": {"modifiers": ["cmd", "shift"], "key": "3"}}
+    ],
+    "summary": "输入 @chrome，等待候选后按 Tab", "scope": "Codex", "group": "浏览器与 Codex", "dependency": "Codex"
   },
   {
-    "id": "codex_toggle",
-    "title": "Codex 切换",
-    "keys": ["⌘ 2"],
-    "summary": "显示或隐藏 Codex，并返回此前窗口",
-    "scope": "全局",
-    "group": "应用",
-    "dependency": "Codex"
+    "id": "codex_toggle", "title": "Codex 切换",
+    "actions": [{"id": "codex_toggle", "title": "显示或隐藏", "defaultHotkey": {"modifiers": ["cmd"], "key": "2"}}],
+    "summary": "显示或隐藏 Codex，并返回此前窗口", "scope": "全局", "group": "应用", "dependency": "Codex"
   },
   {
-    "id": "mailmaster_toggle",
-    "title": "网易邮箱大师",
-    "keys": ["⌘ 5", "⌘ 小键盘5"],
-    "summary": "显示或隐藏邮箱大师并修复主窗口焦点",
-    "scope": "全局",
-    "group": "应用",
-    "dependency": "网易邮箱大师"
+    "id": "mailmaster_toggle", "title": "网易邮箱大师",
+    "actions": [
+      {"id": "mailmaster_toggle", "title": "主键盘", "defaultHotkey": {"modifiers": ["cmd"], "key": "5"}},
+      {"id": "mailmaster_pad5", "title": "小键盘", "defaultHotkey": {"modifiers": ["cmd"], "key": "pad5"}}
+    ],
+    "summary": "显示或隐藏邮箱大师并修复主窗口焦点", "scope": "全局", "group": "应用", "dependency": "网易邮箱大师"
   },
   {
-    "id": "chatgpt_classic",
-    "title": "ChatGPT Classic",
-    "keys": ["⌘ `", "⌘ §", "⌃ ⌥ 1–4"],
-    "summary": "切换主窗口和 Auto、Instant、Thinking、Pro 模型",
-    "scope": "ChatGPT Classic",
-    "group": "应用",
-    "dependency": "ChatGPT Classic"
+    "id": "chatgpt_classic", "title": "ChatGPT Classic",
+    "actions": [
+      {"id": "chatgpt_toggle", "title": "主窗口", "defaultHotkey": {"modifiers": ["cmd"], "key": "`"}},
+      {"id": "chatgpt_toggle_section", "title": "主窗口备用键", "defaultHotkey": {"modifiers": ["cmd"], "key": "§"}},
+      {"id": "chatgpt_model_auto", "title": "Auto", "defaultHotkey": {"modifiers": ["ctrl", "alt"], "key": "1"}},
+      {"id": "chatgpt_model_instant", "title": "Instant", "defaultHotkey": {"modifiers": ["ctrl", "alt"], "key": "2"}},
+      {"id": "chatgpt_model_thinking", "title": "Thinking", "defaultHotkey": {"modifiers": ["ctrl", "alt"], "key": "3"}},
+      {"id": "chatgpt_model_pro", "title": "Pro", "defaultHotkey": {"modifiers": ["ctrl", "alt"], "key": "4"}}
+    ],
+    "summary": "切换主窗口和 Auto、Instant、Thinking、Pro 模型", "scope": "ChatGPT Classic", "group": "应用", "dependency": "ChatGPT Classic"
   },
   {
-    "id": "whatsapp_command_w",
-    "title": "WhatsApp 保留窗口",
-    "keys": ["⌘ W"],
-    "summary": "隐藏并保留指定 Edge WhatsApp PWA 窗口",
-    "scope": "WhatsApp Edge PWA",
-    "group": "应用",
-    "dependency": "WhatsApp Edge PWA"
+    "id": "whatsapp_command_w", "title": "WhatsApp 保留窗口",
+    "actions": [{"id": "whatsapp_command_w", "title": "隐藏窗口", "defaultHotkey": {"modifiers": ["cmd"], "key": "w"}}],
+    "summary": "隐藏并保留指定 Edge WhatsApp PWA 窗口", "scope": "WhatsApp Edge PWA", "group": "应用", "dependency": "WhatsApp Edge PWA"
   },
   {
-    "id": "btt_bridge",
-    "title": "BTT 截图桥接",
-    "keys": ["自动"],
-    "summary": "在截图和鼠标释放后复位 BTT 状态",
-    "scope": "可选集成",
-    "group": "集成",
-    "dependency": "BetterTouchTool"
+    "id": "btt_bridge", "title": "BTT 截图桥接",
+    "actions": [{"id": "btt_bridge_automatic", "title": "自动"}],
+    "summary": "在截图和鼠标释放后复位 BTT 状态", "scope": "可选集成", "group": "集成", "dependency": "BetterTouchTool"
   }
 ]

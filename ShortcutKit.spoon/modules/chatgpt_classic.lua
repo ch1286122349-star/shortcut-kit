@@ -118,12 +118,12 @@ function Module:start(context, config)
   self.hotkeys = {}
   local hotkeys = config.hotkeys or {}
   local specs = {
-    { "toggle_backtick", hotkeys.chatgpt_toggle or { { "cmd" }, "`" }, function() self:toggleMain() end },
-    { "toggle_section", hotkeys.chatgpt_toggle_section or { { "cmd" }, "§" }, function() self:toggleMain() end },
+    { "chatgpt_toggle", hotkeys.chatgpt_toggle or { { "cmd" }, "`" }, function() self:toggleMain() end },
+    { "chatgpt_toggle_section", hotkeys.chatgpt_toggle_section or { { "cmd" }, "§" }, function() self:toggleMain() end },
   }
   for index, mode in ipairs({ "auto", "instant", "thinking", "pro" }) do
     table.insert(specs, {
-      "model_" .. mode,
+      "chatgpt_model_" .. mode,
       hotkeys["chatgpt_model_" .. mode] or { { "ctrl", "alt" }, tostring(index) },
       function()
         local app = self.hs.application.frontmostApplication()

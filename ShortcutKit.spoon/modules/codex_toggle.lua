@@ -75,7 +75,7 @@ function Module:start(context, config)
   self.hs = context.hs
   local spec = (config.hotkeys or {}).codex_toggle or { { "cmd" }, "2" }
   if context.registry then
-    local ok, conflict = context.registry:claim(self.id, "toggle", spec[1], spec[2])
+    local ok, conflict = context.registry:claim(self.id, "codex_toggle", spec[1], spec[2])
     if not ok then error("hotkey conflict: " .. conflict.shortcut) end
   end
   self.hotkey = self.hs.hotkey.bind(spec[1], spec[2], function() self:toggle() end)

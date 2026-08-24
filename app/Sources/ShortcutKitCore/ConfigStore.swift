@@ -5,7 +5,13 @@ public enum ConfigStoreError: Error, Equatable {
     case previousConfigurationUnavailable
 }
 
-public struct ConfigStore: Sendable {
+public protocol ConfigStoring: Sendable {
+    func load() throws -> AppConfiguration
+    func save(_ config: AppConfiguration) throws
+    func restorePrevious() throws
+}
+
+public struct ConfigStore: ConfigStoring, Sendable {
     public let directory: URL
     public let configURL: URL
     public let previousURL: URL
