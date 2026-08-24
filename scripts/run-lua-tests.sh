@@ -4,9 +4,9 @@ set -euo pipefail
 project_root="$(cd "$(dirname "$0")/.." && pwd -P)"
 filter="${1:-}"
 hs_cli="${HS_CLI:-/opt/homebrew/bin/hs}"
-
-if [[ ! -x "$hs_cli" ]]; then
-  printf 'Hammerspoon CLI not found: %s\n' "$hs_cli" >&2
+lua_cli="${LUA_CLI:-$(command -v lua || true)}"
+if [[ ! -x "$hs_cli" && ! -x "$lua_cli" ]]; then
+  printf 'Neither Hammerspoon CLI nor Lua was found.\n' >&2
   exit 1
 fi
 
@@ -21,7 +21,11 @@ for test_file in "$project_root"/tests/lua/*_spec.lua; do
   escaped_root="${escaped_root//\"/\\\"}"
   escaped_test="${test_file//\\/\\\\}"
   escaped_test="${escaped_test//\"/\\\"}"
-  test_result="$("$hs_cli" -c "SHORTCUT_KIT_TEST_ROOT=\"$escaped_root\"; local ok,err=pcall(dofile,\"$escaped_test\"); return ok and \"PASS\" or \"FAIL:\"..tostring(err)" | tail -n 1)"
+  if [[ -x "$hs_cli" ]]; then
+    test_result="$("$hs_cli" -c "SHORTCUT_KIT_TEST_ROOT=\"$escaped_root\"; local ok,err=pcall(dofile,\"$escaped_test\"); return ok and \"PASS\" or \"FAIL:\"..tostring(err)" | tail -n 1)"
+  else
+    test_result="$("$lua_cli" -e "SHORTCUT_KIT_TEST_ROOT=\"$escaped_root\"; local ok,err=pcall(dofile,\"$escaped_test\"); print(ok and \"PASS\" or \"FAIL:\"..tostring(err))" | tail -n 1)"
+  fi
   if [[ "$test_result" != "PASS" ]]; then
     printf '%s: %s\n' "$(basename "$test_file")" "$test_result" >&2
     exit 1

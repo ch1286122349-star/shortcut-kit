@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test tools
+        run: brew install lua shellcheck
+      - name: Shell syntax and lint
+        run: |
+          bash -n install.sh update.sh uninstall.sh restore.sh scripts/*.sh scripts/lib/*.sh tests/shell/*.sh
+          shellcheck install.sh update.sh uninstall.sh restore.sh scripts/*.sh scripts/lib/*.sh tests/shell/*.sh
+      - name: Lua tests
+        env:
+          HS_CLI: /nonexistent/hs
+        run: ./scripts/run-lua-tests.sh
+      - name: Shell tests
+        run: ./scripts/run-shell-tests.sh
+      - name: Public-file audit
+        run: ./scripts/audit-public-files.sh .
+      - name: Build universal OCR helper
+        run: ./scripts/build-ocr.sh && bash tests/shell/build_ocr_test.sh
+      - name: Package release candidate
+        run: ./scripts/package-release.sh v0.1.0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shortcut-kit-v0.1.0
+          path: |
+            dist/shortcut-kit-v0.1.0.zip
+            dist/shortcut-kit-v0.1.0.zip.sha256

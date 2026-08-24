@@ -513,14 +513,14 @@ git commit -m "feat: add fingerprint-gated source migration"
 - Create: `tests/shell/public_audit_test.sh`
 
 **Interfaces:**
-- `audit-public-files.sh [tree]` fails on secrets, `/Users/sheldon`, logs, backups, or unapproved binaries.
+- `audit-public-files.sh [tree]` fails on secrets, private home paths, logs, backups, or unapproved binaries.
 - `package-release.sh <version>` creates `dist/shortcut-kit-<version>.zip` and checksum.
 
 - [ ] **Step 1: Write the failing public audit test**
 
 ```bash
 fixture="$(mktemp -d)"
-printf 'path=/Users/sheldon/private\n' > "$fixture/leak.txt"
+printf 'path=/Users/%s/private\n' 'local-user' > "$fixture/leak.txt"
 if ./scripts/audit-public-files.sh "$fixture"; then
   echo "private path leak must fail" >&2
   exit 1
