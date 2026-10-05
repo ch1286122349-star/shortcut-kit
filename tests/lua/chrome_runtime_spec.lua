@@ -45,25 +45,6 @@ runtime:setChromeActive(false)
 helper.assertEqual(enabledStates[1], true, "Chrome activation enables hotkey")
 helper.assertEqual(enabledStates[2], false, "Chrome deactivation disables hotkey")
 
-local actions = {}
-local fakeHS = {
-  eventtap = {
-    event = { newKeyEvent = function(_, key, down)
-      return { post = function() table.insert(actions, key .. (down and ":down" or ":up")) end }
-    end },
-    keyStrokes = function(text) table.insert(actions, "text:" .. text) end,
-    keyStroke = function(_, key) table.insert(actions, "key:" .. key) end,
-  },
-  timer = {
-    usleep = function() end,
-    doAfter = function(_, callback) callback(); return { stop = function() end } end,
-  },
-}
-local mention = Mention.new()
-mention.hs = fakeHS
-mention:run()
-helper.assertEqual(actions[1], "space:down", "mention begins with space")
-helper.assertEqual(actions[3], "text:@chrome", "mention types trigger before Tab")
-helper.assertEqual(actions[4], "key:tab", "mention confirms with Tab")
-
+-- 提及快捷键的松键、延时和取消行为由 chrome_mention_spec 覆盖。
+helper.assertEqual(type(Mention.new), "function", "mention module remains registered")
 print("chrome_runtime_spec: PASS")
