@@ -16,6 +16,49 @@ function Module:cancel()
   if self.timer then self.timer:stop(); self.timer = nil end
 end
 
+-- 只选择候选列表里的准确名称，不依赖加载速度或默认高亮项。
+function Module:findChromeCandidate(app)
+  if not self.hs.axuielement then return nil end
+  local ax = self.hs.axuielement.applicationElement(app)
+  ax:setAttributeValue("AXManualAccessibility", true)
+  local root = ax:attributeValue("AXFocusedWindow")
+  local count, matches = 0, {}
+  local function exact(value)
+    return type(value) == "string" and value:match("^%s*@?[Cc][Hh][Rr][Oo][Mm][Ee]%s*$") ~= nil
+  end
+  local function scan(element, depth, inList)
+    count = count + 1
+    if count > 900 or depth > 40 then return end
+    local role = element:attributeValue("AXRole")
+    local candidateList = inList or role == "AXList" or role == "AXMenu"
+    local children = element:attributeValue("AXChildren") or {}
+    local named = exact(element:attributeValue("AXTitle"))
+      or exact(element:attributeValue("AXDescription"))
+      or exact(element:attributeValue("AXValue"))
+    for _, child in ipairs(children) do
+      if child:attributeValue("AXRole") == "AXStaticText" then
+        named = named or exact(child:attributeValue("AXValue"))
+          or exact(child:attributeValue("AXTitle"))
+      end
+    end
+    -- 当前 Codex 候选用 AXButton，容器未必暴露为 AXList。
+    -- 实体按键采集：标题 Chrome，描述 Chrome 电脑操控。
+    local description = element:attributeValue("AXDescription") or ""
+    local browserCandidate = exact(element:attributeValue("AXTitle"))
+      and (description:match("^Chrome%s+电脑操控%s*$")
+        or description:match("^Chrome%s+Computer [Uu]se%s*$"))
+    if (candidateList or browserCandidate) and named and (role == "AXButton" or role == "AXMenuItem" or role == "AXRow") then
+      for _, action in ipairs(element:actionNames() or {}) do
+        if action == "AXPress" then matches[#matches + 1] = element; break end
+      end
+    end
+    for _, child in ipairs(children) do scan(child, depth + 1, candidateList) end
+  end
+  if root then scan(root, 0, false) end
+  -- 有歧义时不猜，不对聊天正文里的 Chrome 链接操作。
+  if #matches == 1 then return matches[1] end
+end
+
 function Module:run()
   self:cancel()
   if not self.hotkeys then return end
@@ -52,16 +95,27 @@ function Module:run()
     self.hs.eventtap.keyStroke({}, "space", 0)
     self.hs.eventtap.keyStrokes("@chrome")
     self.lastResult = "waiting-for-candidates"
-    -- 候选刷新前不能按 Tab；固定等待仅作时序保护，不代表已读回候选。
-    schedule(0.8, function()
+    local polls = 0
+    local function selectExactCandidate()
       local currentFlags = self.hs.eventtap.checkKeyboardModifiers()
       if currentFlags.cmd or currentFlags.shift or currentFlags.alt or currentFlags.ctrl then
         self.lastResult = "selection-cancelled-modifier"
         return
       end
-      self.hs.eventtap.keyStroke({}, "tab", 0)
-      self.lastResult = "tab-sent"
-    end)
+      polls = polls + 1
+      local ok, candidate = pcall(self.findChromeCandidate, self, app)
+      if ok and candidate then
+        local pressed, result = pcall(function() return candidate:performAction("AXPress") end)
+        self.lastResult = pressed and result and "chrome-pressed" or "chrome-press-failed"
+        return
+      end
+      if polls >= 40 then
+        self.lastResult = ok and "chrome-candidate-timeout" or "candidate-read-failed"
+        return
+      end
+      schedule(0.15, selectExactCandidate)
+    end
+    schedule(0.15, selectExactCandidate)
   end
   insertWhenReleased()
 end
