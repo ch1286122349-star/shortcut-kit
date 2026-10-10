@@ -44,15 +44,20 @@ function Module:findChromeCandidate(app)
     -- 当前 Codex 候选用 AXButton，容器未必暴露为 AXList。
     -- 实体按键采集：标题 Chrome，描述 Chrome 电脑操控。
     local description = element:attributeValue("AXDescription") or ""
+    local title = element:attributeValue("AXTitle") or ""
     local browserCandidate = exact(element:attributeValue("AXTitle"))
       and (description:match("^Chrome%s+电脑操控%s*$")
         or description:match("^Chrome%s+Computer [Uu]se%s*$"))
-    if (candidateList or browserCandidate) and named and (role == "AXButton" or role == "AXMenuItem" or role == "AXRow") then
+    local combinedName = title:match("^Chrome%s+Chrome%s+电脑操控%s*$")
+      or title:match("^Chrome%s+电脑操控%s*$")
+      or description:match("^Chrome%s+Chrome%s+电脑操控%s*$")
+    if ((candidateList or browserCandidate) and named or combinedName) and (role == "AXButton" or role == "AXMenuItem" or role == "AXRow") then
       for _, action in ipairs(element:actionNames() or {}) do
         if action == "AXPress" then matches[#matches + 1] = element; break end
       end
     end
-    for _, child in ipairs(children) do scan(child, depth + 1, candidateList) end
+    -- 浮层在辅助功能树末尾，先读浮层，避免长聊天耗尽扫描额度。
+    for i = #children, 1, -1 do scan(children[i], depth + 1, candidateList) end
   end
   if root then scan(root, 0, false) end
   -- 有歧义时不猜，不对聊天正文里的 Chrome 链接操作。
@@ -95,7 +100,7 @@ function Module:run()
     self.hs.eventtap.keyStroke({}, "space", 0)
     self.hs.eventtap.keyStrokes("@chrome")
     self.lastResult = "waiting-for-candidates"
-    local polls = 0
+    local polls, stable = 0, 0
     local function selectExactCandidate()
       local currentFlags = self.hs.eventtap.checkKeyboardModifiers()
       if currentFlags.cmd or currentFlags.shift or currentFlags.alt or currentFlags.ctrl then
@@ -105,17 +110,34 @@ function Module:run()
       polls = polls + 1
       local ok, candidate = pcall(self.findChromeCandidate, self, app)
       if ok and candidate then
-        local pressed, result = pcall(function() return candidate:performAction("AXPress") end)
-        self.lastResult = pressed and result and "chrome-pressed" or "chrome-press-failed"
-        return
+        local current = candidate:attributeValue("AXARIACurrent")
+        local selected = candidate:attributeValue("AXSelected")
+        self.selectionDiagnostics = {current=current, selected=selected}
+        if current == true or current == "true" or selected == true then
+          stable = stable + 1
+          if stable >= 2 then
+            -- AXPress 不会走网页的 mousedown.preventDefault，可能丢失编辑位置。
+            -- 确认准确候选连续处于高亮状态后，用键盘保留编辑器焦点。
+            self.hs.eventtap.keyStroke({}, "tab", 0)
+            self.lastResult = "chrome-tab-sent"
+            return
+          end
+        elseif current ~= nil or selected ~= nil then
+          stable = 0
+          self.hs.eventtap.keyStroke({}, "up", 0)
+        else
+          stable = 0
+        end
+      else
+        stable = 0
       end
-      if polls >= 40 then
+      if polls >= 150 then
         self.lastResult = ok and "chrome-candidate-timeout" or "candidate-read-failed"
         return
       end
-      schedule(0.15, selectExactCandidate)
+      schedule(0.04, selectExactCandidate)
     end
-    schedule(0.15, selectExactCandidate)
+    schedule(0.04, selectExactCandidate)
   end
   insertWhenReleased()
 end
